@@ -1,0 +1,28 @@
+{
+    "id": "63024688",
+    "path": "~/Dropbox/Personal computer/Independent studies/2020/Multiple-bias meta-analysis (MBMA)/Linked to OSF (MBMA)/Simulation study/Code/doParallel_MBMA.R",
+    "project_path": "doParallel_MBMA.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1655039514100.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "cursorPosition": "344,7",
+        "scrollLine": "325",
+        "docOutlineVisible": "1",
+        "Source": "Source",
+        "rmdVisualCollapsedChunks": "",
+        "docOutlineSize": "335"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1656504044,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1656504044607,
+    "read_only": false,
+    "read_only_alternatives": []
+}

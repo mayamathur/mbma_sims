@@ -1,0 +1,25 @@
+{
+    "id": "7B258382",
+    "path": "~/Dropbox/Personal computer/Independent studies/2020/Multiple-bias meta-analysis (MBMA)/Linked to OSF (MBMA)/Simulation study/Code/init_stan_model_MBMA.R",
+    "project_path": "init_stan_model_MBMA.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1655039523785.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "cursorPosition": "102,77",
+        "scrollLine": "0",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1655039575,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1655039575812,
+    "read_only": false,
+    "read_only_alternatives": []
+}

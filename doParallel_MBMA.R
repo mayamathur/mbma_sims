@@ -23,7 +23,7 @@ rm( list = ls() )
 
 
 # are we running locally?
-run.local = TRUE
+run.local = FALSE
 
 # should we set scen params interactively on cluster?
 interactive.cluster.run = FALSE
@@ -160,7 +160,7 @@ if (run.local == FALSE) {
   
   # simulation reps to run within this job
   # **this need to match n.reps.in.doParallel in the genSbatch script
-  if ( interactive.cluster.run == FALSE ) sim.reps = 200
+  if ( interactive.cluster.run == FALSE ) sim.reps = 600
   if ( interactive.cluster.run == TRUE ) sim.reps = 1  
   
   # set the number of cores
@@ -190,7 +190,7 @@ if ( run.local == TRUE ) {
     # full list (save):
     # rep.methods = "naive ; gold-std ; pcurve ; maon ; 2psm ; rtma ; jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var ; MBMA-mle-sd ; 2psm-MBMA-dataset ; prereg-naive",
     #rep.methods = "naive ; rtma ; 2psm",
-    rep.methods = "naive ; sapb ; 2psm",
+    rep.methods = "naive ; sapb-adj-muB ; sapb-adj-MhatB ; maon-adj-muB ; maon-adj-MhatB ; 2psm",
     
     # args from sim_meta_2
     Nmax = 1,
@@ -201,7 +201,7 @@ if ( run.local == TRUE ) {
     
     hack = c("affirm2"),
     rho = c(0),
-    k.pub.nonaffirm = c(200), # TEMP: HUGE
+    k.pub.nonaffirm = c(20), # TEMP: HUGE
     prob.hacked = c(0),
     
     eta = 5,
@@ -244,8 +244,8 @@ if ( run.local == TRUE ) setwd(code.dir)
 
 if ( run.local == FALSE ) setwd(path)
 
-
-source("init_stan_model_MBMA.R")
+#@TEMP: NOT RUNNING RTMA
+#source("init_stan_model_MBMA.R")
 
 
 
@@ -321,34 +321,42 @@ doParallel.seconds = system.time({
     d$Zi = d$yi / sqrt(d$vi)
     
     
-    # ~ ******* MBMA: Pre-Adjust Estimates, Crit Values, Variances ------------------------------
-    d$yi.adj = d$yi - d$Ci * p$muB
-    d$vi.adj = d$vi + d$Ci * p$sig2B
+    # ~ ******* MBMA: Pre-Adjust Estimates, Crit Values, Variances Using TRUE muB, sigB ------------------------------
+    d$yi.adj.true = d$yi - d$Ci * p$muB
+    d$vi.adj.true = d$vi + d$Ci * p$sig2B
     
-    d$tcrit.adj = d$tcrit
-    d$tcrit.adj[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] * sqrt(d$vi[ d$Ci == 1 ]) - p$muB ) / sqrt(d$vi.adj[ d$Ci == 1 ])
+    d$tcrit.adj.true = d$tcrit
+    d$tcrit.adj.true[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] * sqrt(d$vi[ d$Ci == 1 ]) - p$muB ) / sqrt(d$vi.adj.true[ d$Ci == 1 ])
     
     # d %>% group_by(Ci) %>%
     #   summarise( mean(yi),
-    #              mean(yi.adj),
-    #              mean(vi.adj),
+    #              mean(yi.adj.true),
+    #              mean(vi.adj.true),
     #              mean(tcrit),
-    #              mean(tcrit.adj))
+    #              mean(tcrit.adj.true))
     
     expect_equal( d$affirm,
                   d$yi > d$tcrit * sqrt(d$vi) )
     # confirm that adjusted affirmative threshold is equivalent to the old one
     expect_equal( d$affirm,
-                  d$yi.adj > d$tcrit.adj * sqrt(d$vi.adj) )
+                  d$yi.adj.true > d$tcrit.adj.true * sqrt(d$vi.adj.true) )
     
     
-    #bm
-    # 2022-6-28 - NEW ADJUSTMENT BASED ON ID'ABLE BIAS EXPECTATION:
+    
+    
+
+    
+    
+    # ***** 2022-6-28 - NEW ADJUSTMENT BASED ON ID'ABLE BIAS EXPECTATION: -----------------
+    
+    # dataset of only favored AND published results
+    # (used in this section)
+    dp = d %>% filter(Di == 1 & Di.across == 1)
     
     # P(A^*_i = 1 | C^*_i = 1) from P(A^*_i = 1 | C^*_i = 1, D^*_i = 1) 
     P.affirm.pub = mean( dp$affirm[ dp$Ci == 1 ] )
     # and P(A^*_i = 0 | C^*_i = 1):
-    P.nonaffirm.pub = 1 - pa.obs
+    P.nonaffirm.pub = 1 - P.affirm.pub
     
     # mean 
     EB.affirm.obs = mean( dp$Bi[ dp$Ci == 1 & dp$affirm == 1] )
@@ -358,27 +366,32 @@ doParallel.seconds = system.time({
     
     # called "gamma" on iPad
     # a sample estimate of muB
-    MhatB = (1/denom) * ( P.nonaffirm.pub * p$eta * EB.nonaffirm.obs +
-                            P.affirm.pub * EB.affirm.obs )
+    ( MhatB = (1/denom) * ( P.nonaffirm.pub * p$eta * EB.nonaffirm.obs +
+                            P.affirm.pub * EB.affirm.obs ) )
     
-    # unweighted sample estimate one (just for comparison)
-    # will be way too high
-    mean( dp$Bi[ dp$Ci == 1 ] )
-    
-    # underlying sample estimate of truth
-    mean( d$Bi[ d$Ci == 1 & d$Di == 1] )
-    
-    # also should be close to...
-    p$muB
+    # # unweighted sample estimate one (just for comparison)
+    # # will be way too high
+    # mean( dp$Bi[ dp$Ci == 1 ] )
+    # 
+    # # underlying sample estimate of truth
+    # mean( d$Bi[ d$Ci == 1 & d$Di == 1] )
+    # 
+    # # also should be close to...
+    # p$muB
     
     # yes!! seems to make sense!!
     #bm: look at these checks again, then code up a SAPB estimator that uses MhatB instead of muB :D
     
+    # adjusted yi's using the estimated MhatB
+    d$yi.adj.est = d$yi - d$Ci *MhatB
+    
     
     # ~ Dataset Subsets for Various Methods ------------------------------
+    
     # dataset of only favored AND published results
+    # overwrite the previous one to get the new variables (e.g., yi.adj.est)
     dp = d %>% filter(Di == 1 & Di.across == 1)
-
+    
     # keep first draws only
     d.first = d[ !duplicated(d$study), ]
     
@@ -393,8 +406,6 @@ doParallel.seconds = system.time({
     
     if ( i == 1 ) cat("\n\nHEAD OF DP:\n")
     if ( i == 1 ) print(head(dp))
-    
- 
     
     # ~ Start Values ------------------------------
     
@@ -483,27 +494,30 @@ doParallel.seconds = system.time({
     
     # ~~ ****** SAPB WITH CONFOUNDING ADJUSTMENT ------------------------------
 
-    if ( "sapb-adj" %in% all.methods ) {
+    
+    
+    # using the reweighting-based sample estimate of muB ("MhatB")
+    if ( "sapb-adj-MhatB" %in% all.methods ) {
       
-      rep.res = run_method_safe(method.label = c("sapb-adj"),
+      rep.res = run_method_safe(method.label = c("sapb-adj-MhatB"),
                                 method.fn = function() {
                                   
                                   # from inside PublicationBias::corrected_meta;
                                   #  only change is that we want affirm indicator to be that of the *confounded* estimates, not the adjusted ones
                                   # weight for model
-                                  weights = rep( 1, length(dp$yi.adj) )
+                                  weights = rep( 1, length(dp$yi.adj.est) )
                                   # weight based on the affirm indicator of the *confounded* estimates
                                   weights[ dp$affirm == FALSE ] = p$eta
                                   
                                   # initialize a dumb (unclustered and uncorrected) version of tau^2
                                   # which is only used for constructing weights
-                                  meta.re = rma.uni( yi = dp$yi.adj,
+                                  meta.re = rma.uni( yi = dp$yi.adj.est,
                                                      vi = dp$vi)
                                   t2hat.naive = meta.re$tau2  #@ could subtract off the sig2B here, but would also need to account for some studies' being unconfounded
                                   
-  
+                                  
                                   # fit weighted robust model
-                                  meta.robu = robu( yi.adj ~ 1,
+                                  meta.robu = robu( yi.adj.est ~ 1,
                                                     studynum = 1:nrow(dp),
                                                     data = dp,
                                                     userweights = weights / (vi + t2hat.naive),
@@ -521,7 +535,51 @@ doParallel.seconds = system.time({
                                 },
                                 .rep.res = rep.res )
       
-      cat("\n doParallel flag: Done sapb-adj if applicable")
+      cat("\n doParallel flag: Done sapb-adj-MhatB if applicable")
+      
+    }
+    
+    
+    # using the true muB
+    if ( "sapb-adj-muB" %in% all.methods ) {
+      
+      rep.res = run_method_safe(method.label = c("sapb-adj-muB"),
+                                method.fn = function() {
+                                  
+                                  # from inside PublicationBias::corrected_meta;
+                                  #  only change is that we want affirm indicator to be that of the *confounded* estimates, not the adjusted ones
+                                  # weight for model
+                                  weights = rep( 1, length(dp$yi.adj.true) )
+                                  # weight based on the affirm indicator of the *confounded* estimates
+                                  weights[ dp$affirm == FALSE ] = p$eta
+                                  
+                                  # initialize a dumb (unclustered and uncorrected) version of tau^2
+                                  # which is only used for constructing weights
+                                  meta.re = rma.uni( yi = dp$yi.adj.true,
+                                                     vi = dp$vi)
+                                  t2hat.naive = meta.re$tau2  #@ could subtract off the sig2B here, but would also need to account for some studies' being unconfounded
+                                  
+  
+                                  # fit weighted robust model
+                                  meta.robu = robu( yi.adj.true ~ 1,
+                                                    studynum = 1:nrow(dp),
+                                                    data = dp,
+                                                    userweights = weights / (vi + t2hat.naive),
+                                                    var.eff.size = vi,
+                                                    small = TRUE )
+                                  
+                                  # follow the same return structure as report_meta
+                                  list( stats = data.frame( Mhat = as.numeric(meta.robu$b.r),
+                                                            MLo = meta.robu$reg_table$CI.L,
+                                                            MHi = meta.robu$reg_table$CI.U,
+                                                            
+                                                            Shat = NA,
+                                                            SLo = NA,
+                                                            SHi = NA ) ) 
+                                },
+                                .rep.res = rep.res )
+      
+      cat("\n doParallel flag: Done sapb-adj-muB if applicable")
       
     }
     
@@ -545,7 +603,7 @@ doParallel.seconds = system.time({
                                   t2hat.naive = p$S^2
                                   
                                   # fit weighted robust model
-                                  meta.robu = robu( yi.adj ~ 1,
+                                  meta.robu = robu( yi.adj.true ~ 1,
                                                     studynum = 1:nrow(dp),
                                                     data = dp,
                                                     userweights = weights / (vi + t2hat.naive),
@@ -573,6 +631,7 @@ doParallel.seconds = system.time({
     
     # ~~ ********* RTMA WITH CONFOUNDING ADJUSTMENT ------------------------------
     
+    #@ THIS IS STILL USING THE TRUE ADJUSTMENT
     if ( "rtma-adj" %in% all.methods ) {
     #if ( FALSE ) {
       
@@ -590,9 +649,9 @@ doParallel.seconds = system.time({
                                                  "rtma-adj-max-lp-iterate"),
                                 # note that we're now passing the confounding-adjusted estimates, variances,
                                 #  and critical values
-                                method.fn = function() estimate_jeffreys_mcmc_RTMA(.yi = dpn$yi.adj,
-                                                                                   .sei = sqrt(dpn$vi.adj),
-                                                                                   .tcrit = dpn$tcrit.adj,
+                                method.fn = function() estimate_jeffreys_mcmc_RTMA(.yi = dpn$yi.adj.true,
+                                                                                   .sei = sqrt(dpn$vi.adj.true),
+                                                                                   .tcrit = dpn$tcrit.adj.true,
                                                                                    .Mu.start = Mhat.start,
                                                                                    # can't handle start value of 0:
                                                                                    .Tt.start = max(0.01, Shat.start),
@@ -620,10 +679,10 @@ doParallel.seconds = system.time({
     if ( "jeffreys-adj-sd" %in% all.methods ) {
 
       rep.res = run_method_safe(method.label = c("jeffreys-adj-sd"),
-                                method.fn = function() estimate_jeffreys_RTMA(yi = dpn$yi.adj,
-                                                                              sei = sqrt(dpn$vi.adj), 
+                                method.fn = function() estimate_jeffreys_RTMA(yi = dpn$yi.adj.true,
+                                                                              sei = sqrt(dpn$vi.adj.true), 
                                                                               par2is = "Tt",
-                                                                              tcrit = dpn$tcrit.adj, 
+                                                                              tcrit = dpn$tcrit.adj.true, 
                                                                               Mu.start = Mhat.start,
                                                                               par2.start = Shat.start,
                                                                               usePrior = TRUE,
@@ -639,11 +698,30 @@ doParallel.seconds = system.time({
     
     # ~~ ******** MAON WITH CONFOUNDING ADJUSTMENT --------------------------------------
     
-    if ( "maon-adj" %in% all.methods ) {
+    # using the sample estimate of muB
+    if ( "maon-adj-MhatB" %in% all.methods ) {
       
-      rep.res = run_method_safe(method.label = c("maon-adj"),
+      rep.res = run_method_safe(method.label = c("maon-adj-MhatB"),
                                 method.fn = function() {
-                                  mod = robu( yi.adj ~ 1, 
+                                  mod = robu( yi.adj.est ~ 1, 
+                                              data = dpn, 
+                                              studynum = 1:nrow(dpn),
+                                              var.eff.size = vi,  # using original variance
+                                              small = TRUE )
+                                  
+                                  report_meta(mod, .mod.type = "robu")
+                                },
+                                .rep.res = rep.res )
+      
+    }
+    
+    
+    # using the true muB
+    if ( "maon-adj-muB" %in% all.methods ) {
+      
+      rep.res = run_method_safe(method.label = c("maon-adj-muB"),
+                                method.fn = function() {
+                                  mod = robu( yi.adj.true ~ 1, 
                                               data = dpn, 
                                               studynum = 1:nrow(dpn),
                                               var.eff.size = vi,  # using original variance
@@ -789,8 +867,11 @@ doParallel.seconds = system.time({
                                         
                                         # sanity checks for gamma, the bias adjustment
                                         # E[Bi^* | Ci^* = 1], the target for gamma:
+                                        sancheck.MhatB = MhatB,
                                         #@note: Di = 1 here is FAVORING indicator, so this is still the mean Bi among underlying (pre-SAS) estimates
-                                        sancheck.EBi = mean( d$Bi[ d$Ci == 1 & d$Di == 1] )
+                                        # this is an underlying SAMPLE estimate of the truth; should approximately agree with MhatB and muB
+                                        sancheck.EBsti = mean( d$Bi[ d$Ci == 1 & d$Di == 1] )
+
     )
     
     rep.res
@@ -803,10 +884,12 @@ doParallel.seconds = system.time({
 dim(rs)
 # quick look
 rs %>% mutate(MhatWidth = MHi - MLo,
-              MhatCover = as.numeric( MHi > p$Mu & MLo < p$Mu ) ) %>%
-  dplyr::select(method, Mhat, MhatWidth, MhatCover) %>%
+              MhatCover = as.numeric( MHi > Mu & MLo < Mu ) ) %>%
+  dplyr::select(method, Mhat, MhatWidth, MhatCover,
+                sancheck.MhatB, sancheck.EBsti) %>%
+  
   group_by(method) %>%
-  summarise_if(is.numeric, meanNA)
+  summarise_if(is.numeric, function(x) round( meanNA(x), 2 ) )   
 
 
 

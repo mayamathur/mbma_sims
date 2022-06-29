@@ -10,19 +10,19 @@
     "source_on_save": false,
     "relative_order": 1,
     "properties": {
-        "cursorPosition": "344,7",
-        "scrollLine": "325",
+        "cursorPosition": "183,17",
+        "scrollLine": "180",
         "docOutlineVisible": "1",
         "Source": "Source",
         "rmdVisualCollapsedChunks": "",
         "docOutlineSize": "335"
     },
-    "folds": "",
-    "lastKnownWriteTime": 1656504044,
+    "folds": "187|28|235|7|\n256|41|909|0|\n",
+    "lastKnownWriteTime": 1656508066,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1656504044607,
+    "last_content_update": 1656508079274,
     "read_only": false,
     "read_only_alternatives": []
 }

@@ -44,12 +44,12 @@ lapply( allPackages,
 #   the start values from being the true ones)
 
 
-### 2022-6-19 - EARLY MBMA TEST (NO HACKING) ###
+### 2022-6-19 and 2022-6-29 - EARLY MBMA TEST (NO HACKING) ###
 scen.params = tidyr::expand_grid(
   # full list (save):
   # rep.methods = "naive ; gold-std ; pcurve ; maon ; 2psm ; rtma ; jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var ; MBMA-mle-sd ; 2psm-MBMA-dataset ; prereg-naive",
   #rep.methods = "naive ; rtma ; 2psm",
-  rep.methods = "naive ; sapb-adj ; sapb-true-t2 ; 2psm ; rtma-adj ; jeffreys-adj-sd",
+  rep.methods = "naive ; sapb-adj-muB ; sapb-adj-MhatB ; moan-adj-muB ; moan-adj-MhatB ; 2psm",
   
   # args from sim_meta_2
   Nmax = 30,
@@ -143,10 +143,8 @@ write.csv( scen.params, "scen_params.csv", row.names = FALSE )
 source("helper_MBMA.R")
 
 # number of sbatches to generate (i.e., iterations within each scenario)
-# n.reps.per.scen = 1000  
-# n.reps.in.doParallel = 200  #@if running optimx, I used 100 here and 5:00:00 below
 n.reps.per.scen = 600
-n.reps.in.doParallel = 200
+n.reps.in.doParallel = 600
 ( n.files = ( n.reps.per.scen / n.reps.in.doParallel ) * n.scen )
 
 
@@ -164,7 +162,7 @@ runfile_path = paste(path, "/testRunFile.R", sep="")
 sbatch_params <- data.frame(jobname,
                             outfile,
                             errorfile,
-                            jobtime = "02:00:00",  # full SAPH sims: 200 reps.in.doParallel and 2:00:00 here
+                            jobtime = "02:00:00",  # 2022-6-19 with RTMA had used 2:00 and 200 reps.in.doParallel
                             quality = "normal",
                             node_number = 1,
                             mem_per_node = 64000,
@@ -185,10 +183,10 @@ n.files
 # run just the first one
 # sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
 
-# 648
+# 216
 path = "/home/groups/manishad/MBMA"
 setwd( paste(path, "/sbatch_files", sep="") )
-for (i in 2:648) {
+for (i in 1:1) {
   system( paste("sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/", i, ".sbatch", sep="") )
 }
 

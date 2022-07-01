@@ -93,6 +93,12 @@ table(agg$sim.reps.actual)
 #agg = agg %>% filter(sim.reps.actual >= 1500)
 
 
+
+# TEMP: REMOVE SCENS WITH NO CONFOUNDED STUDIES OR WITH HACKING
+agg = agg %>% filter(prob.conf > 0 & prob.hacked == 0 &
+                       hack == "affirm")
+
+
 # ~~ List variable names -------------------------
 
 # initialize global variables that describe estimate and outcome names, etc.

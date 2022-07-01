@@ -49,7 +49,7 @@ scen.params = tidyr::expand_grid(
   # full list (save):
   # rep.methods = "naive ; gold-std ; pcurve ; maon ; 2psm ; rtma ; jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var ; MBMA-mle-sd ; 2psm-MBMA-dataset ; prereg-naive",
   #rep.methods = "naive ; rtma ; 2psm",
-  rep.methods = "naive ; sapb-adj-muB ; sapb-adj-MhatB ; moan-adj-muB ; moan-adj-MhatB ; 2psm",
+  rep.methods = "naive ; sapb-adj-muB ; sapb-adj-MhatB ; maon-adj-muB ; maon-adj-MhatB ; 2psm",
   
   # args from sim_meta_2
   Nmax = 30,
@@ -186,7 +186,7 @@ n.files
 # 216
 path = "/home/groups/manishad/MBMA"
 setwd( paste(path, "/sbatch_files", sep="") )
-for (i in 1:1) {
+for (i in 1:216) {
   system( paste("sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/", i, ".sbatch", sep="") )
 }
 

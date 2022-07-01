@@ -53,8 +53,8 @@ make_agg_data = function( .s,
     "MhatRMSE",
     "ShatRMSE",
     
-    "MhatEstSE",
-    "ShatEstSE",
+    # "MhatEstSE",
+    # "ShatEstSE",
     
     "MhatEmpSE",
     "ShatEmpSE",
@@ -63,33 +63,20 @@ make_agg_data = function( .s,
     "MhatEstFail",
     "MhatCIFail",
     "ShatEstFail",
-    "ShatCIFail",
+    "ShatCIFail"
     
-    # #@2022-3-10 TEMP: COMMENTED OUT BECAUSE I DIDN'T RUN OPTIMX METHODS, SO THIS BREAKS
-    # # diagnostics for main Mhat optimizer
-    # "OptimConverged",
-    # 
-    # #@2022-3-10 TEMP: COMMENTED OUT BECAUSE I DIDN'T RUN OPTIMX METHODS, SO THIS BREAKS
-    # # diagnostics for other optimizers
-    # "OptimxMhatWinner",
-    # "OptimxPropAgreeMhatWinner",
-    # "OptimxPropAgreeConvergersMhatWinner",
-    # 
-    # "OptimxShatWinner",
-    # "OptimxPropAgreeShatWinner",
-    # "OptimxPropAgreeConvergersShatWinner",
-    
+    #@TEMP: COMMENTED OUT WHEN NOT RUNNING RTMA
     # Stan diagnostics, part 2
-    "StanWarned",
-    "MhatRhatGt1.01",
-    "MhatRhatGt1.05",
-    "MhatRhatGt1.10",
-    "MhatRhatMax",
-
-    "ShatRhatGt1.01",
-    "ShatRhatGt1.05",
-    "ShatRhatGt1.10",
-    "ShatRhatMax"
+    # "StanWarned",
+    # "MhatRhatGt1.01",
+    # "MhatRhatGt1.05",
+    # "MhatRhatGt1.10",
+    # "MhatRhatMax",
+    # 
+    # "ShatRhatGt1.01",
+    # "ShatRhatGt1.05",
+    # "ShatRhatGt1.10",
+    # "ShatRhatMax"
   )
   
   
@@ -104,11 +91,20 @@ make_agg_data = function( .s,
                  "t2a",
                  "t2w",
                  "m",
-                 "true.sei.expr",
+                 
+         
                  "hack",
                  "rho",
                  "k.pub.nonaffirm",
                  "prob.hacked",
+                 
+                 "eta",
+                 
+                 "true.sei.expr",
+                 
+                 "muB",
+                 "sig2B",
+                 
                  "stan.adapt_delta",
                  "stan.maxtreedepth")
   
@@ -153,11 +149,11 @@ make_agg_data = function( .s,
   # if you have 10K iterates, script breaks from here forward if running locally
   # "vector memory limits"
   s2 = .s %>%
-    rename(
-      # static within scenario
-      # just renaming for clarity
-      MhatEstSE = MhatSE,
-      ShatEstSE = ShatSE ) %>%
+    # rename(
+    #   # static within scenario
+    #   # just renaming for clarity
+    #   MhatEstSE = MhatSE,
+    #   ShatEstSE = ShatSE ) %>%
     
     # take just first entry of non-parameter variables that are static within scenarios
     group_by_at(param.vars) %>%
@@ -207,40 +203,27 @@ make_agg_data = function( .s,
             ShatEmpSE = sd(Shat, na.rm = TRUE),
             
             
-            # varies within scenario
-            # how much smaller is estimated SE compared to empirical one?
-            MhatSEBias = MhatEstSE - MhatEmpSE,
-            ShatSEBias = ShatEstSE - ShatEmpSE,
-            
-            # varies within scenario
-            MhatSERelBias = (MhatEstSE - MhatEmpSE) / MhatEmpSE, 
-            ShatSERelBias = (ShatEstSE - ShatEmpSE) / ShatEmpSE,
-            
-            # static within scenario
-            # # ALSO COMMENTED OUT PART OF ANALYSIS.VARS ABOVE
-            # OptimConverged = meanNA(optim.converged),
-            # OptimxNConvergers = meanNA(optimx.Nconvergers),
-            # OptimxNAgreeOfConvergersMhatWinner = meanNA(optimx.Nagree.of.convergers.Mhat.winner),
+            # # varies within scenario
+            # # how much smaller is estimated SE compared to empirical one?
+            # MhatSEBias = MhatEstSE - MhatEmpSE,
+            # ShatSEBias = ShatEstSE - ShatEmpSE,
             # 
-            # OptimxMhatWinner = meanNA(optimx.Mhat.winner),
-            # OptimxPropAgreeMhatWinner = meanNA(optimx.Pagree.Mhat.winner),
-            # OptimxPropAgreeConvergersMhatWinner = meanNA(optimx.Pagree.of.convergers.Mhat.winner),
-            # 
-            # OptimxShatWinner = meanNA(optimx.Shat.winner),
-            # OptimxPropAgreeShatWinner = meanNA(optimx.Pagree.Shat.winner),
-            # OptimxPropAgreeConvergersShatWinner = meanNA(optimx.Pagree.of.convergers.Shat.winner),
+            # # varies within scenario
+            # MhatSERelBias = (MhatEstSE - MhatEmpSE) / MhatEmpSE, 
+            # ShatSERelBias = (ShatEstSE - ShatEmpSE) / ShatEmpSE,
             
+            #@temp: commented out
             # static within scenario
-            StanWarned = meanNA(stan.warned),
-            MhatRhatGt1.01 = meanNA(MhatRhat > 1.01),
-            MhatRhatGt1.05 = meanNA(MhatRhat > 1.05),
-            MhatRhatGt1.10 = meanNA(MhatRhat > 1.10),
-            MhatRhatMax = max(MhatRhat),
-            
-            ShatRhatGt1.01 = meanNA(ShatRhat > 1.01),
-            ShatRhatGt1.05 = meanNA(ShatRhat > 1.05),
-            ShatRhatGt1.10 = meanNA(ShatRhat > 1.10),
-            ShatRhatMax = max(ShatRhat),
+            # StanWarned = meanNA(stan.warned),
+            # MhatRhatGt1.01 = meanNA(MhatRhat > 1.01),
+            # MhatRhatGt1.05 = meanNA(MhatRhat > 1.05),
+            # MhatRhatGt1.10 = meanNA(MhatRhat > 1.10),
+            # MhatRhatMax = max(MhatRhat),
+            # 
+            # ShatRhatGt1.01 = meanNA(ShatRhat > 1.01),
+            # ShatRhatGt1.05 = meanNA(ShatRhat > 1.05),
+            # ShatRhatGt1.10 = meanNA(ShatRhat > 1.10),
+            # ShatRhatMax = max(ShatRhat),
             
             # SLURM timing stats
             doParallelSeconds = meanNA(doParallel.seconds),

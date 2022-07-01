@@ -123,9 +123,10 @@ t = s %>% group_by(scen.name, k.pub.nonaffirm, Mu,
              # MLo = meanNA(MLo),
              # MHi = meanNA(MHi),
              Shat = meanNA(Shat),
-             MhatNA = mean(is.na(Mhat)),
-             MhatRhatGt1.05 = mean(MhatRhat>1.05),
-  MhatRhatGt1.02 = mean(MhatRhat>1.02)) %>%
+             MhatNA = mean(is.na(Mhat))
+  #            MhatRhatGt1.05 = mean(MhatRhat>1.05),
+  # MhatRhatGt1.02 = mean(MhatRhat>1.02)
+  ) %>%
   #filter(reps > 1000) %>%
     mutate_if(is.numeric, function(x) round(x,2))
 

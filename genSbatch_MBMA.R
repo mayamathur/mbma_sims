@@ -49,7 +49,7 @@ scen.params = tidyr::expand_grid(
   # full list (save):
   # rep.methods = "naive ; gold-std ; pcurve ; maon ; 2psm ; rtma ; jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var ; MBMA-mle-sd ; 2psm-MBMA-dataset ; prereg-naive",
   #rep.methods = "naive ; rtma ; 2psm",
-  rep.methods = "naive ; sapb-adj-muB ; sapb-adj-MhatB ; maon-adj-muB ; maon-adj-MhatB ; 2psm",
+  rep.methods = "naive ; sapb-adj-muB ; sapb-adj-MhatB ; rtma-adj-muB ; rtma-adj-MhatB ; maon-adj-muB ; maon-adj-MhatB ; 2psm",
   
   # args from sim_meta_2
   Nmax = 30,
@@ -69,7 +69,7 @@ scen.params = tidyr::expand_grid(
   
   muB = log(1.5),
   sig2B = 0.5,
-  prob.conf = c(0.5, 0),
+  prob.conf = c(0.5), #@temp: I removed unconfounded scens since methods don't handle
   
   # Stan control args
   stan.maxtreedepth = 25,
@@ -122,6 +122,10 @@ scen.params = tidyr::expand_grid(
 # # rho > 0 is pointless if there's only 1 draw
 # scen.params = scen.params %>% dplyr::filter( !(rho > 0 & Nmax == 1) )
 
+# no need to run both hacking types when p.hacked = 0
+first.hack.type = unique(scen.params$hack)[1]
+scen.params = scen.params %>% filter( prob.hacked > 0 | (prob.hacked == 0 & hack == first.hack.type) )
+
 # add scen numbers
 start.at = 1
 scen.params = scen.params %>% add_column( scen = start.at : ( nrow(scen.params) + (start.at - 1) ),
@@ -144,7 +148,7 @@ source("helper_MBMA.R")
 
 # number of sbatches to generate (i.e., iterations within each scenario)
 n.reps.per.scen = 600
-n.reps.in.doParallel = 600
+n.reps.in.doParallel = 600  # previous: 600
 ( n.files = ( n.reps.per.scen / n.reps.in.doParallel ) * n.scen )
 
 
@@ -183,10 +187,10 @@ n.files
 # run just the first one
 # sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
 
-# 216
+# 81
 path = "/home/groups/manishad/MBMA"
 setwd( paste(path, "/sbatch_files", sep="") )
-for (i in 1:216) {
+for (i in 1:81) {
   system( paste("sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/", i, ".sbatch", sep="") )
 }
 

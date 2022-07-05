@@ -23,7 +23,7 @@ rm( list = ls() )
 
 
 # are we running locally?
-run.local = TRUE
+run.local = FALSE
 
 # should we set scen params interactively on cluster?
 interactive.cluster.run = FALSE
@@ -161,7 +161,7 @@ if (run.local == FALSE) {
   # simulation reps to run within this job
   # **this need to match n.reps.in.doParallel in the genSbatch script
   if ( interactive.cluster.run == FALSE ) sim.reps = 600
-  if ( interactive.cluster.run == TRUE ) sim.reps = 1  
+  if ( interactive.cluster.run == TRUE ) sim.reps = 600  
   
   # set the number of cores
   registerDoParallel(cores=16)
@@ -245,7 +245,7 @@ if ( run.local == TRUE ) setwd(code.dir)
 if ( run.local == FALSE ) setwd(path)
 
 #@TEMP: NOT RUNNING RTMA
-#source("init_stan_model_MBMA.R")
+source("init_stan_model_MBMA.R")
 
 
 
@@ -676,8 +676,8 @@ doParallel.seconds = system.time({
     
     # ~~ ********* RTMA WITH CONFOUNDING ADJUSTMENT ------------------------------
     
-    #@ THIS IS STILL USING THE TRUE ADJUSTMENT
-    if ( "rtma-adj" %in% all.methods ) {
+   
+    if ( "rtma-adj-muB" %in% all.methods ) {
     #if ( FALSE ) {
       
       # # temp for refreshing code
@@ -689,9 +689,9 @@ doParallel.seconds = system.time({
       # this one has two labels in method arg because a single call to estimate_jeffreys_mcmc
       #  returns 2 lines of output, one for posterior mean and one for posterior median
       # order of labels in method arg needs to match return structure of estimate_jeffreys_mcmc
-      rep.res = run_method_safe(method.label = c("rtma-adj-pmean",
-                                                 "rtma-adj-pmed",
-                                                 "rtma-adj-max-lp-iterate"),
+      rep.res = run_method_safe(method.label = c("rtma-adj-muB-pmean",
+                                                 "rtma-adj-muB-pmed",
+                                                 "rtma-adj-muB-max-lp-iterate"),
                                 # note that we're now passing the confounding-adjusted estimates, variances,
                                 #  and critical values
                                 method.fn = function() estimate_jeffreys_mcmc_RTMA(.yi = dpn$yi.adj.true,
@@ -704,10 +704,53 @@ doParallel.seconds = system.time({
                                                                                    .stan.maxtreedepth = p$stan.maxtreedepth), .rep.res = rep.res )
       
       
-      Mhat.MaxLP = rep.res$Mhat[ rep.res$method == "rtma-adj-max-lp-iterate" ]
-      Shat.MaxLP = rep.res$Shat[ rep.res$method == "rtma-adj-max-lp-iterate" ]
+      Mhat.MaxLP = rep.res$Mhat[ rep.res$method == "rtma-adj-muB-max-lp-iterate" ]
+      Shat.MaxLP = rep.res$Shat[ rep.res$method == "rtma-adj-muB-max-lp-iterate" ]
       
-      cat("\n doParallel flag: Done rtma-adj if applicable")
+      cat("\n doParallel flag: Done rtma-adj-muB if applicable")
+    }
+    
+    #srr()
+    
+    # ~~ Change Starting Values -----
+    if ( !is.na(Mhat.MaxLP) ) Mhat.start = Mhat.MaxLP
+    if ( !is.na(Shat.MaxLP) ) Shat.start = Shat.MaxLP 
+    
+    
+    
+    # 2022-7-5: using estimated bias parameters
+    
+    if ( "rtma-adj-MhatB" %in% all.methods ) {
+      #if ( FALSE ) {
+      
+      # # temp for refreshing code
+      # path = "/home/groups/manishad/MBMA"
+      #setwd(path)
+      # source("helper_MBMA.R")
+      # source("init_stan_model_MBMA.R")
+      
+      # this one has two labels in method arg because a single call to estimate_jeffreys_mcmc
+      #  returns 2 lines of output, one for posterior mean and one for posterior median
+      # order of labels in method arg needs to match return structure of estimate_jeffreys_mcmc
+      rep.res = run_method_safe(method.label = c("rtma-adj-MhatB-pmean",
+                                                 "rtma-adj-MhatB-pmed",
+                                                 "rtma-adj-MhatB-max-lp-iterate"),
+                                # note that we're now passing the confounding-adjusted estimates, variances,
+                                #  and critical values
+                                method.fn = function() estimate_jeffreys_mcmc_RTMA(.yi = dpn$yi.adj.est,
+                                                                                   .sei = sqrt(dpn$vi.adj.est),
+                                                                                   .tcrit = dpn$tcrit.adj.est,
+                                                                                   .Mu.start = Mhat.start,
+                                                                                   # can't handle start value of 0:
+                                                                                   .Tt.start = max(0.01, Shat.start),
+                                                                                   .stan.adapt_delta = p$stan.adapt_delta,
+                                                                                   .stan.maxtreedepth = p$stan.maxtreedepth), .rep.res = rep.res )
+      
+      
+      Mhat.MaxLP = rep.res$Mhat[ rep.res$method == "rtma-adj-MhatB-max-lp-iterate" ]
+      Shat.MaxLP = rep.res$Shat[ rep.res$method == "rtma-adj-MhatB-max-lp-iterate" ]
+      
+      cat("\n doParallel flag: Done rtma-adj-MhatB if applicable")
     }
     
     #srr()
@@ -721,6 +764,7 @@ doParallel.seconds = system.time({
     
     # ~~ ****** MAP (SD param) ------------------------------
     
+    #@ THIS IS STILL USING THE TRUE ADJUSTMENT
     if ( "jeffreys-adj-sd" %in% all.methods ) {
 
       rep.res = run_method_safe(method.label = c("jeffreys-adj-sd"),
@@ -915,7 +959,9 @@ doParallel.seconds = system.time({
                                         sancheck.MhatB = MhatB,
                                         #@note: Di = 1 here is FAVORING indicator, so this is still the mean Bi among underlying (pre-SAS) estimates
                                         # this is an underlying SAMPLE estimate of the truth; should approximately agree with MhatB and muB
-                                        sancheck.EBsti = mean( d$Bi[ d$Ci == 1 & d$Di == 1] )
+                                        sancheck.EBsti = mean( d$Bi[ d$Ci == 1 & d$Di == 1] ),
+                                        
+                                        sancheck.shat2B = shat2B
 
     )
     

@@ -190,31 +190,31 @@ if ( run.local == TRUE ) {
     # full list (save):
     # rep.methods = "naive ; gold-std ; pcurve ; maon ; 2psm ; rtma ; jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var ; MBMA-mle-sd ; 2psm-MBMA-dataset ; prereg-naive",
     #rep.methods = "naive ; rtma ; 2psm",
-    rep.methods = "naive ; sapb-adj-muB ; sapb-adj-MhatB ; maon-adj-muB ; maon-adj-MhatB ; 2psm",
+    rep.methods = "naive ; sapb-adj-muB",
     
     # args from sim_meta_2
-    Nmax = 1,
+    Nmax = 30,
     Mu = c(0.5),
-    t2a = c(0.2^2),
+    t2a = c(0),
     t2w = c(0.2^2),
     m = 50,
     
-    hack = c("affirm2"),
+    hack = c("favor-best-affirm-wch"),
     rho = c(0),
-    k.pub.nonaffirm = c(50),
-    prob.hacked = c(0),
+    k.pub.nonaffirm = c(5),
+    prob.hacked = c(0.5),
     
-    eta = 5,
+    eta = c(1, 5, 10),
     
     true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
     
-    muB = log(2),
+    muB = log(1.5),
     sig2B = 0.5,
-    prob.conf = 0.5,
+    prob.conf = c(0.5), 
     
     # Stan control args
-    stan.maxtreedepth = 20,
-    stan.adapt_delta = 0.80,
+    stan.maxtreedepth = 25,
+    stan.adapt_delta = 0.995,
     
     get.CIs = TRUE,
     run.optimx = FALSE )
@@ -260,7 +260,7 @@ if ( exists("rs") ) rm(rs)
 doParallel.seconds = system.time({
   rs = foreach( i = 1:sim.reps, .combine = bind_rows ) %dopar% {
     #for debugging (out file will contain all printed things):
-    #for ( i in 1:1 ) {
+    #for ( i in 1:50 ) {
     
     # only print info for first sim rep for visual clarity
     if ( i == 1 ) cat("\n\n~~~~~~~~~~~~~~~~ BEGIN SIM REP", i, "~~~~~~~~~~~~~~~~")
@@ -415,22 +415,25 @@ doParallel.seconds = system.time({
       Pstar.nonaffirm = P.nonaffirm.pub*p$eta/denom
       
       # variance of bias in published studies, assumed known
-      # avoid NAs if there are no affirms
-      if ( P.affirm.pub > 0 ) {
-        ( shat2B.affirm.obs = var( dp$Bi[ dp$Ci == 1 & dp$affirm == 1] ) )
+      # avoid NAs if there are no confounded affirms
+      if ( any( dp$Ci == 1 & dp$affirm == 1 ) ) {
+        ( shat2B.affirm.obs = var( dp$Bi[ dp$Ci == 1 & dp$affirm == 1 ] ) )
       } else {
         # doesn't matter what value is assigned since will be multiplied
         #  by probability of 0
         shat2B.affirm.obs = 0
       }
       
-      if ( P.nonaffirm.pub > 0 ) {
-        ( shat2B.nonaffirm.obs = var( dp$Bi[ dp$Ci == 1 & dp$affirm == 0] ) )
+      if ( any(dp$Ci == 1 & dp$affirm == 0) ) {
+        ( shat2B.nonaffirm.obs = var( dp$Bi[ dp$Ci == 1 & dp$affirm == 0 ] ) )
       } else {
         # doesn't matter what value is assigned since will be multiplied
         #  by probability of 0
         shat2B.nonaffirm.obs = 0
       }
+      
+      # IMPORTANT: shat2B.affirm.obs could be NA if there is only 1 study with C^*i = 1 and affirm = 1 (or same for affirm = 0)
+      # then shat2B will be NA, and also vi.adj.est
       
  
       termA = Pstar.affirm*shat2B.affirm.obs + Pstar.nonaffirm*shat2B.nonaffirm.obs
@@ -469,11 +472,65 @@ doParallel.seconds = system.time({
       
 
       # ~ Sanity checks on RTMA reparametrization -------------------
+      
+      if ( any(is.na(d$yi.adj.est)) | any(is.na(d$vi.adj.est)) ) {
+
+        cat("\n\n TEMP FLAG yi.adj.est:\n")
+        print(head(d$yi.adj.est))
+
+        cat("\n\n vi.adj.est:\n")
+        print(head(d$vi.adj.est))
+
+        cat("\n\n mean(dp$Ci):\n")
+        print( mean(dp$Ci) )
+
+        cat("\n\n mean(dp$affirm):\n")
+        print( mean(dp$affirm) )
+
+        cat("\n\n shat2B:\n")
+        print( shat2B )
+
+        cat("\n\n shat2B.nonaffirm.obs:\n")
+        print( shat2B.nonaffirm.obs )
+
+        cat("\n\n shat2B.affirm.obs:\n")
+        print( shat2B.affirm.obs )
+      }
+
+      if ( length(d$yi.adj.est) == 0 | length(d$vi.adj.est) == 0 ) {
+
+        cat("\n\n TEMP FLAG yi.adj.est:\n")
+        print(head(d$yi.adj.est))
+
+        cat("\n\n vi.adj.est:\n")
+        print(head(d$vi.adj.est))
+
+        cat("\n\n mean(dp$Ci):\n")
+        print( mean(dp$Ci) )
+
+        cat("\n\n mean(dp$affirm):\n")
+        print( mean(dp$affirm) )
+
+        cat("\n\n shat2B:\n")
+        print( shat2B )
+
+        cat("\n\n shat2B.nonaffirm.obs:\n")
+        print( shat2B.nonaffirm.obs )
+
+        cat("\n\n shat2B.affirm.obs:\n")
+        print( shat2B.affirm.obs )
+      }
+      
+      
       expect_equal( d$affirm,
                     d$yi > d$tcrit * sqrt(d$vi) )
       # confirm that adjusted affirmative threshold is equivalent to the old one
-      expect_equal( d$affirm,
-                    d$yi.adj.est > d$tcrit.adj.est * sqrt(d$vi.adj.est) )
+      # vi.adj.est could be NA if there is only 1 study with C^*i = 1 and affirm = 1 (or same for affirm = 0)
+      if ( all( !is.na(d$vi.adj.est) ) ) {
+        expect_equal( d$affirm,
+                      d$yi.adj.est > d$tcrit.adj.est * sqrt(d$vi.adj.est) )
+      }
+
       
     } else {
       # i.e., if Ci = 0 always
@@ -482,18 +539,7 @@ doParallel.seconds = system.time({
       d$tcrit.adj.est = d$tcrit
     }
     
-    
-    cat("\n\n yi.adj.est:\n")
-    print(head(d$yi.adj.est))
-    
-    cat("\n\n vi.adj.est:\n")
-    print(head(d$vi.adj.est))
-    
-    cat("\n\n mean(dp$Ci):\n")
-    print( mean(dp$Ci) )
-    
-    cat("\n\n shat2B:\n")
-    print( shat2B )
+   
     
     # ~ Dataset Subsets for Various Methods ------------------------------
     

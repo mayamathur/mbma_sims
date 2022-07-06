@@ -177,6 +177,9 @@ estimate_jeffreys_mcmc_RTMA = function(.yi,
                                        .stan.adapt_delta = 0.8,
                                        .stan.maxtreedepth = 10 ) {
   
+  # this can happen if we don't have adjusted variances because we only have 1 confounded affirm, for example
+  if ( any(is.na(.sei) ) ) stop("RTMA can't proceed because some sei were NA")
+  
   # stan.model (used later) is compiled OUTSIDE this fn in doParallel to avoid 
   #  issues with nodes competing with one another
   

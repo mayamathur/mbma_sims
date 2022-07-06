@@ -201,7 +201,7 @@ if ( run.local == TRUE ) {
     
     hack = c("affirm2"),
     rho = c(0),
-    k.pub.nonaffirm = c(500), # TEMP: HUGE
+    k.pub.nonaffirm = c(50),
     prob.hacked = c(0),
     
     eta = 5,
@@ -322,108 +322,168 @@ doParallel.seconds = system.time({
     
     
     # ~ MBMA: Pre-Adjust Estimates, Crit Values, Variances Using TRUE muB, sigB ------------------------------
-    d$yi.adj.true = d$yi - d$Ci * p$muB
-    d$vi.adj.true = d$vi + d$Ci * p$sig2B
     
-    d$tcrit.adj.true = d$tcrit
-    d$tcrit.adj.true[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] * sqrt(d$vi[ d$Ci == 1 ]) - p$muB ) / sqrt(d$vi.adj.true[ d$Ci == 1 ])
     
-    # d %>% group_by(Ci) %>%
-    #   summarise( mean(yi),
-    #              mean(yi.adj.true),
-    #              mean(vi.adj.true),
-    #              mean(tcrit),
-    #              mean(tcrit.adj.true))
-    
-    expect_equal( d$affirm,
-                  d$yi > d$tcrit * sqrt(d$vi) )
-    # confirm that adjusted affirmative threshold is equivalent to the old one
-    expect_equal( d$affirm,
-                  d$yi.adj.true > d$tcrit.adj.true * sqrt(d$vi.adj.true) )
-    
+    if ( any(d$Ci == 1) ) {
+      # this section of code is fine even if d$Ci = 1 always
+      d$yi.adj.true = d$yi - d$Ci * p$muB
+      d$vi.adj.true = d$vi + d$Ci * p$sig2B
+      
+      d$tcrit.adj.true = d$tcrit
+      d$tcrit.adj.true[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] * sqrt(d$vi[ d$Ci == 1 ]) - p$muB ) / sqrt(d$vi.adj.true[ d$Ci == 1 ])
+      
+      # d %>% group_by(Ci) %>%
+      #   summarise( mean(yi),
+      #              mean(yi.adj.true),
+      #              mean(vi.adj.true),
+      #              mean(tcrit),
+      #              mean(tcrit.adj.true))
+      
+      expect_equal( d$affirm,
+                    d$yi > d$tcrit * sqrt(d$vi) )
+      # confirm that adjusted affirmative threshold is equivalent to the old one
+      expect_equal( d$affirm,
+                    d$yi.adj.true > d$tcrit.adj.true * sqrt(d$vi.adj.true) )
+      
+    } else {
+      # if Ci = 0 always
+      d$yi.adj.true = d$yi
+      d$vi.adj.true = d$vi
+      d$tcrit.adj.true = d$tcrit
+    }
+ 
     
     
     # ***** 2022-6-28 - NEW ADJUSTMENT BASED ON ID'ABLE BIAS EXPECTATION: -----------------
+    
     
     # dataset of only favored AND published results
     # (used in this section)
     dp = d %>% filter(Di == 1 & Di.across == 1)
     
-    # P(A^*_i = a | C^*_i = 1, D^*_i = 1) 
-    ( P.affirm.pub = mean( dp$affirm[ dp$Ci == 1 ] ) )
-    # and P(A^*_i = 0 | C^*_i = 1):
-    P.nonaffirm.pub = 1 - P.affirm.pub
-    
-    # mean bias in published studies
-    #  assumed to be correctly specified, so using sample average in underlying studies
-    MhatB.affirm.obs = mean( dp$Bi[ dp$Ci == 1 & dp$affirm == 1] )
-    MhatB.nonaffirm.obs = mean( dp$Bi[ dp$Ci == 1 & dp$affirm == 0] )
-    
-    denom = P.affirm.pub + p$eta * P.nonaffirm.pub
-    
-    # ~ Sample estimate of muB -------------------
-    # called "gamma" on iPad
-    # a sample estimate of muB
-    ( MhatB = (1/denom) * ( P.nonaffirm.pub * p$eta * MhatB.nonaffirm.obs +
-                            P.affirm.pub * MhatB.affirm.obs ) )
-    
-    # # unweighted sample estimate one (just for comparison)
-    # # will be way too high
-    # mean( dp$Bi[ dp$Ci == 1 ] )
-    # 
-    # # underlying sample estimate of truth
-    # mean( d$Bi[ d$Ci == 1 & d$Di == 1] )
-    # 
-    # # also should be close to...
-    # p$muB
-    
-    # ~ Sample estimate of sig2B (only used for RTMA, not SAPB) -------------------
-    
-    # from 2022-7-4 theory
-    # estimate *underlying* P(A^*_i = a | C^*_i = 1) from P(A^*_i = a | C^*_i = 1, D^*_i = 1)
-    ( Pstar.affirm = P.affirm.pub/denom )
-    Pstar.nonaffirm = P.nonaffirm.pub*p$eta/denom
-    
-    # variance of bias in published studies, assumed known
-    #bm
-    ( shat2B.affirm.obs = var( dp$Bi[ dp$Ci == 1 & dp$affirm == 1] ) )
-    ( shat2B.nonaffirm.obs = var( dp$Bi[ dp$Ci == 1 & dp$affirm == 0] ) )
-    
-    termA = Pstar.affirm*shat2B.affirm.obs + Pstar.nonaffirm*shat2B.nonaffirm.obs
-    termB = ( Pstar.affirm * Pstar.nonaffirm ) * ( MhatB.affirm.obs^2 + MhatB.nonaffirm.obs^2 )
-    termC = 2 * ( Pstar.affirm * Pstar.nonaffirm ) * ( MhatB.affirm.obs * MhatB.nonaffirm.obs )
-    
-    ( shat2B = termA + termB - termC )
-    
-    # # sanity checks
-    # # close match
-    # Pstar.affirm
-    # mean(d$affirm[d$Ci==1])
-    # 
-    # # sample should be close to underlying because no selection on Bi^*
-    # #  though requires quite large k to work
-    # shat2B.nonaffirm.obs
-    # var(d$Bi[d$Ci == 1 & d$affirm == 0])
-    # 
-    # # also matches pretty closely
-    # shat2B
-    # var(d$Bi[d$Ci==1])
-    # p$sig2B
-    
+    if ( any(dp$Ci == 1) ) {
 
-    # ~ ******* Adjusted yi, vi, tcrit in the dataset -------------------
-    # adjusted yi's using the estimated MhatB
+      # P(A^*_i = a | C^*_i = 1, D^*_i = 1)
+      ( P.affirm.pub = mean( dp$affirm[ dp$Ci == 1 ] ) )
+      # and P(A^*_i = 0 | C^*_i = 1):
+      P.nonaffirm.pub = 1 - P.affirm.pub
+      
+      # mean bias in published studies
+      #  assumed to be correctly specified, so using sample average in underlying studies
+      
+      # avoid NAs in MhatB.affirm.obs if there are no affirms
+      if ( P.affirm.pub > 0 ) {
+        MhatB.affirm.obs = mean( dp$Bi[ dp$Ci == 1 & dp$affirm == 1] )
+      } else {
+        # doesn't matter what value is assigned since will be multiplied
+        #  by probability of 0
+        MhatB.affirm.obs = 0
+      }
+      
+      if ( P.nonaffirm.pub > 0 ) {
+        MhatB.nonaffirm.obs = mean( dp$Bi[ dp$Ci == 1 & dp$affirm == 0] )
+      } else {
+        # doesn't matter what value is assigned since will be multiplied
+        #  by probability of 0
+        MhatB.nonaffirm.obs = 0
+      }
+      
+      
+      denom = P.affirm.pub + p$eta * P.nonaffirm.pub
+      
+      # ~ Sample estimate of muB -------------------
+      # called "gamma" on iPad
+      # a sample estimate of muB
+      ( MhatB = (1/denom) * ( P.nonaffirm.pub * p$eta * MhatB.nonaffirm.obs +
+                                P.affirm.pub * MhatB.affirm.obs ) )
+      
+      # # unweighted sample estimate one (just for comparison)
+      # # will be way too high
+      # mean( dp$Bi[ dp$Ci == 1 ] )
+      # 
+      # # underlying sample estimate of truth
+      # mean( d$Bi[ d$Ci == 1 & d$Di == 1] )
+      # 
+      # # also should be close to...
+      # p$muB
+      
+      # ~ Sample estimate of sig2B (only used for RTMA, not SAPB) -------------------
+      
+      # from 2022-7-4 theory
+      # estimate *underlying* P(A^*_i = a | C^*_i = 1) from P(A^*_i = a | C^*_i = 1, D^*_i = 1)
+      ( Pstar.affirm = P.affirm.pub/denom )
+      Pstar.nonaffirm = P.nonaffirm.pub*p$eta/denom
+      
+      # variance of bias in published studies, assumed known
+      # avoid NAs if there are no affirms
+      if ( P.affirm.pub > 0 ) {
+        ( shat2B.affirm.obs = var( dp$Bi[ dp$Ci == 1 & dp$affirm == 1] ) )
+      } else {
+        # doesn't matter what value is assigned since will be multiplied
+        #  by probability of 0
+        shat2B.affirm.obs = 0
+      }
+      
+      if ( P.nonaffirm.pub > 0 ) {
+        ( shat2B.nonaffirm.obs = var( dp$Bi[ dp$Ci == 1 & dp$affirm == 0] ) )
+      } else {
+        # doesn't matter what value is assigned since will be multiplied
+        #  by probability of 0
+        shat2B.nonaffirm.obs = 0
+      }
+      
+ 
+      termA = Pstar.affirm*shat2B.affirm.obs + Pstar.nonaffirm*shat2B.nonaffirm.obs
+      termB = ( Pstar.affirm * Pstar.nonaffirm ) * ( MhatB.affirm.obs^2 + MhatB.nonaffirm.obs^2 )
+      termC = 2 * ( Pstar.affirm * Pstar.nonaffirm ) * ( MhatB.affirm.obs * MhatB.nonaffirm.obs )
+      
+      ( shat2B = termA + termB - termC )
+      
+      # # sanity checks
+      # # close match
+      # Pstar.affirm
+      # mean(d$affirm[d$Ci==1])
+      # 
+      # # sample should be close to underlying because no selection on Bi^*
+      # #  though requires quite large k to work
+      # shat2B.nonaffirm.obs
+      # var(d$Bi[d$Ci == 1 & d$affirm == 0])
+      # 
+      # # also matches pretty closely
+      # shat2B
+      # var(d$Bi[d$Ci==1])
+      # p$sig2B
+      
+      
+      # ~ ******* Adjusted yi, vi, tcrit in the dataset -------------------
+      
+      # adjusted yi's using the estimated MhatB
+      # using the underlying dataset rather than dp so that we can do sanity checks later
+      d$yi.adj.est = d$yi - d$Ci * MhatB
+      
+      d$vi.adj.est = d$vi + d$Ci * shat2B
+      
+      d$tcrit.adj.est = d$tcrit
+      d$tcrit.adj.est[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] *
+                                         sqrt(d$vi[ d$Ci == 1 ]) - MhatB ) / sqrt(d$vi.adj.est[ d$Ci == 1 ])
+      
 
-    d$yi.adj.est = d$yi - d$Ci * MhatB
+      # ~ Sanity checks on RTMA reparametrization -------------------
+      expect_equal( d$affirm,
+                    d$yi > d$tcrit * sqrt(d$vi) )
+      # confirm that adjusted affirmative threshold is equivalent to the old one
+      expect_equal( d$affirm,
+                    d$yi.adj.est > d$tcrit.adj.est * sqrt(d$vi.adj.est) )
+      
+    } else {
+      # i.e., if Ci = 0 always
+      d$yi.adj.est = d$yi
+      d$vi.adj.est = d$vi
+      d$tcrit.adj.est = d$tcrit
+    }
     
-    d$vi.adj.est = d$vi + d$Ci * shat2B
     
-    d$tcrit.adj.est = d$tcrit
-    d$tcrit.adj.est[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] *
-                                       sqrt(d$vi[ d$Ci == 1 ]) - MhatB ) / sqrt(d$vi.adj.est[ d$Ci == 1 ])
-    
-    
-   cat("\n\n yi.adj.est:\n")
+    cat("\n\n yi.adj.est:\n")
     print(head(d$yi.adj.est))
     
     cat("\n\n vi.adj.est:\n")
@@ -434,14 +494,6 @@ doParallel.seconds = system.time({
     
     cat("\n\n shat2B:\n")
     print( shat2B )
-    
-    # ~ Sanity checks on RTMA reparametrization -------------------
-    expect_equal( d$affirm,
-                  d$yi > d$tcrit * sqrt(d$vi) )
-    # confirm that adjusted affirmative threshold is equivalent to the old one
-    expect_equal( d$affirm,
-                  d$yi.adj.est > d$tcrit.adj.est * sqrt(d$vi.adj.est) )
-    
     
     # ~ Dataset Subsets for Various Methods ------------------------------
     

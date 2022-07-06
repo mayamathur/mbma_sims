@@ -147,8 +147,8 @@ write.csv( scen.params, "scen_params.csv", row.names = FALSE )
 source("helper_MBMA.R")
 
 # number of sbatches to generate (i.e., iterations within each scenario)
-n.reps.per.scen = 600
-n.reps.in.doParallel = 600  # previous: 600
+n.reps.per.scen = 100
+n.reps.in.doParallel = 100  # previous: 600
 ( n.files = ( n.reps.per.scen / n.reps.in.doParallel ) * n.scen )
 
 
@@ -190,7 +190,7 @@ n.files
 # 81
 path = "/home/groups/manishad/MBMA"
 setwd( paste(path, "/sbatch_files", sep="") )
-for (i in 1:81) {
+for (i in 1:1) {
   system( paste("sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/", i, ".sbatch", sep="") )
 }
 

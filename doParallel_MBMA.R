@@ -160,8 +160,8 @@ if (run.local == FALSE) {
   
   # simulation reps to run within this job
   # **this need to match n.reps.in.doParallel in the genSbatch script
-  if ( interactive.cluster.run == FALSE ) sim.reps = 600
-  if ( interactive.cluster.run == TRUE ) sim.reps = 600  
+  if ( interactive.cluster.run == FALSE ) sim.reps = 100
+  if ( interactive.cluster.run == TRUE ) sim.reps = 1  
   
   # set the number of cores
   registerDoParallel(cores=16)
@@ -422,6 +422,18 @@ doParallel.seconds = system.time({
     d$tcrit.adj.est[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] *
                                        sqrt(d$vi[ d$Ci == 1 ]) - MhatB ) / sqrt(d$vi.adj.est[ d$Ci == 1 ])
     
+    
+   cat("\n\n yi.adj.est:\n")
+    print(head(d$yi.adj.est))
+    
+    cat("\n\n vi.adj.est:\n")
+    print(head(d$vi.adj.est))
+    
+    cat("\n\n mean(dp$Ci):\n")
+    print( mean(dp$Ci) )
+    
+    cat("\n\n shat2B:\n")
+    print( shat2B )
     
     # ~ Sanity checks on RTMA reparametrization -------------------
     expect_equal( d$affirm,

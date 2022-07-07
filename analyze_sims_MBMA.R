@@ -95,8 +95,8 @@ table(agg$sim.reps.actual)
 
 
 # TEMP: REMOVE SCENS WITH NO CONFOUNDED STUDIES OR WITH HACKING
-agg = agg %>% filter(prob.conf > 0 & prob.hacked == 0 &
-                       hack == "affirm")
+# agg = agg %>% filter(prob.conf > 0 & prob.hacked == 0 &
+#                        hack == "affirm")
 
 
 # ~~ List variable names -------------------------
@@ -152,12 +152,18 @@ param.vars.manip2
 #   "jeffreys-var", "mle-sd", "csm-mle-sd", "mle-var", "2psm-csm-dataset", 
 #   "prereg-naive", "ltn-mle-sd")
 ( all.methods = unique(agg$method) )
-#toDrop = c("jeffreys-mcmc-pmean", "jeffreys-mcmc-max-lp-iterate")
-toDrop = NULL
+toDrop = c("rtma-adj-MhatB-pmed",
+           "rtma-adj-muB-pmed",
+           "rtma-adj-MhatB-pmean",
+           'rtma-adj-muB-pmean')
+#toDrop = NULL
 method.keepers = all.methods[ !all.methods %in% toDrop ]
 
 
 # for each hacking method and Mu, make facetted plotly
+
+
+# BM: Now that there's hacking, need to adjust this to go over prob.hack and hack type, I think?
 
 for ( .hack in unique(agg$hack) ) {
   
@@ -173,7 +179,7 @@ for ( .hack in unique(agg$hack) ) {
                             t2a == .t2a &
                             hack == .hack)
     # to label the plots
-    prefix = paste( "2022-6-19 sims; ",
+    prefix = paste( "2022-7-5 sims; ",
                     "t2a=", .t2a,
                     "; hack=", .hack, 
                     sep = "")
@@ -248,7 +254,14 @@ for ( .hack in unique(agg$hack) ) {
 
 
 
-
+# temp: look at RTMA efficiency
+agg %>% filter(eta == 1,
+               prob.hacked == 0,
+               #t2a == 0.04,
+               method == "rtma-adj-MhatB-max-lp-iterate") %>%
+  #select( param.vars.manip, Ynames) %>% 
+  select( t2a, k.pub.nonaffirm, Ynames) %>% 
+  mutate_if(is.numeric, function(x) round(x,2))
 
 
 # ******** PLOTS (SIMPLE AND PRETTY FOR MAIN TEXT) -------------------------

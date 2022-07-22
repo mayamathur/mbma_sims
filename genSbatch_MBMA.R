@@ -60,7 +60,7 @@ scen.params = tidyr::expand_grid(
   
   hack = c("favor-best-affirm-wch", "affirm"),
   rho = c(0),
-  k.pub.nonaffirm = c(5, 10, 50),
+  k.pub.nonaffirm = c(5, 10, 20, 50),
   prob.hacked = c(0.5, 0),
   
   eta = c(1, 5, 10),

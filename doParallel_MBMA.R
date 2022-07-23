@@ -28,6 +28,9 @@ run.local = FALSE
 # should we set scen params interactively on cluster?
 interactive.cluster.run = FALSE
 
+# should lots of output be printed for each sim rep?
+verbose = FALSE
+
 # ~~ Packages -----------------------------------------------
 toLoad = c("crayon",
            "dplyr",
@@ -160,7 +163,7 @@ if (run.local == FALSE) {
   
   # simulation reps to run within this job
   # **this need to match n.reps.in.doParallel in the genSbatch script
-  if ( interactive.cluster.run == FALSE ) sim.reps = 600
+  if ( interactive.cluster.run == FALSE ) sim.reps = 2000
   if ( interactive.cluster.run == TRUE ) sim.reps = 1  
   
   # set the number of cores
@@ -187,37 +190,38 @@ if ( run.local == TRUE ) {
   
   # ~~ Set Local Sim Params -----------------------------
   scen.params = tidyr::expand_grid(
-    # full list (save):
-    # rep.methods = "naive ; gold-std ; pcurve ; maon ; 2psm ; rtma ; jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var ; MBMA-mle-sd ; 2psm-MBMA-dataset ; prereg-naive",
-    #rep.methods = "naive ; rtma ; 2psm",
-    rep.methods = "naive ; mbma-muB",
+    
+    rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-true-t2 ; maon-adj-MhatB ; 2psm",
+    
     
     # args from sim_meta_2
-    Nmax = 30,
+    Nmax = 1,
     Mu = c(0.5),
-    t2a = c(0),
-    t2w = c(0.2^2),
+    t2a = c(0, 0.25^2, 0.5^2), 
+    t2w = c(0),
     m = 50,
     
-    hack = c("favor-best-affirm-wch"),
+    hack = c("affirm"),  # but there will not be any hacking since prob.hacked is 0
     rho = c(0),
-    k.pub.nonaffirm = c(5),
-    prob.hacked = c(0.5),
+    k.pub.nonaffirm = c(5, 10, 15, 30, 50),
+    prob.hacked = c(0),
     
     eta = c(1, 5, 10),
     
     true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
     
-    muB = log(1.5),
+    # confounding parameters
+    muB = log(1.5, 3),
     sig2B = 0.5,
     prob.conf = c(0.5), 
     
-    # Stan control args
+    # Stan control args - only relevant if running RTMA
     stan.maxtreedepth = 25,
     stan.adapt_delta = 0.995,
     
     get.CIs = TRUE,
     run.optimx = FALSE )
+  
   
   
   scen.params$scen = 1:nrow(scen.params)
@@ -260,7 +264,7 @@ if ( exists("rs") ) rm(rs)
 doParallel.seconds = system.time({
   rs = foreach( i = 1:sim.reps, .combine = bind_rows ) %dopar% {
     #for debugging (out file will contain all printed things):
-    #for ( i in 1:50 ) {
+    #for ( i in 1:1000 ) {
     
     # only print info for first sim rep for visual clarity
     if ( i == 1 ) cat("\n\n~~~~~~~~~~~~~~~~ BEGIN SIM REP", i, "~~~~~~~~~~~~~~~~")
@@ -270,20 +274,22 @@ doParallel.seconds = system.time({
     
     # extract simulation params for this scenario (row)
     # exclude the column with the scenario name itself (col) 
-    cat("\n\n scen variable:\n")
-    print(scen)
-    
-    cat("\n\n scen.params again:\n")
-    print(scen.params)
-    
+    if ( verbose == TRUE ) {
+      cat("\n\n scen variable:\n")
+      print(scen)
+      
+      cat("\n\n scen.params again:\n")
+      print(scen.params)
+    }
+
     p = scen.params[ scen.params$scen == scen, names(scen.params) != "scen"]
     
     # calculate TOTAL heterogeneity
     p$V = p$t2a + p$t2w
     p$S = sqrt(p$V)
     
-    if ( i == 1 ) cat("\n\nDIM AND HEAD OF P (SINGLE ROW OF SCEN.PARAMS):\n")
-    if ( i == 1 ) print(dim(p)); print(p); print(p$Mu)
+    if ( i == 1 & verbose == TRUE) cat("\n\nDIM AND HEAD OF P (SINGLE ROW OF SCEN.PARAMS):\n")
+    if ( i == 1  & verbose == TRUE) print(dim(p)); print(p); print(p$Mu)
     
     # parse methods string
     all.methods = unlist( strsplit( x = p$rep.methods,
@@ -394,6 +400,29 @@ doParallel.seconds = system.time({
       ( MhatB = (1/denom) * ( P.nonaffirm.pub * p$eta * MhatB.nonaffirm.obs +
                                 P.affirm.pub * MhatB.affirm.obs ) )
       
+      #bm
+      if ( is.na(MhatB) ) {
+
+        cat("\n\n TEMP FLAG MhatB:\n")
+        print(MhatB)
+        
+        cat("\n\n P.nonaffirm.pub:\n")
+        print(P.nonaffirm.pub)
+        
+        cat("\n\n MhatB.nonaffirm.obs:\n")
+        print( MhatB.nonaffirm.obs )
+        
+        cat("\n\n P.affirm.pub:\n")
+        print(P.affirm.pub)
+        
+        cat("\n\n MhatB.affirm.obs:\n")
+        print( MhatB.affirm.obs )
+        
+        break
+      }
+
+    
+      
       # # unweighted sample estimate one (just for comparison)
       # # will be way too high
       # mean( dp$Bi[ dp$Ci == 1 ] )
@@ -470,53 +499,54 @@ doParallel.seconds = system.time({
 
       # ~ Sanity checks on RTMA reparametrization -------------------
       
-      if ( any(is.na(d$yi.adj.est)) | any(is.na(d$vi.adj.est)) ) {
-
-        cat("\n\n TEMP FLAG yi.adj.est:\n")
-        print(head(d$yi.adj.est))
-
-        cat("\n\n vi.adj.est:\n")
-        print(head(d$vi.adj.est))
-
-        cat("\n\n mean(dp$Ci):\n")
-        print( mean(dp$Ci) )
-
-        cat("\n\n mean(dp$affirm):\n")
-        print( mean(dp$affirm) )
-
-        cat("\n\n shat2B:\n")
-        print( shat2B )
-
-        cat("\n\n shat2B.nonaffirm.obs:\n")
-        print( shat2B.nonaffirm.obs )
-
-        cat("\n\n shat2B.affirm.obs:\n")
-        print( shat2B.affirm.obs )
-      }
-
-      if ( length(d$yi.adj.est) == 0 | length(d$vi.adj.est) == 0 ) {
-
-        cat("\n\n TEMP FLAG yi.adj.est:\n")
-        print(head(d$yi.adj.est))
-
-        cat("\n\n vi.adj.est:\n")
-        print(head(d$vi.adj.est))
-
-        cat("\n\n mean(dp$Ci):\n")
-        print( mean(dp$Ci) )
-
-        cat("\n\n mean(dp$affirm):\n")
-        print( mean(dp$affirm) )
-
-        cat("\n\n shat2B:\n")
-        print( shat2B )
-
-        cat("\n\n shat2B.nonaffirm.obs:\n")
-        print( shat2B.nonaffirm.obs )
-
-        cat("\n\n shat2B.affirm.obs:\n")
-        print( shat2B.affirm.obs )
-      }
+      # look for problems calculating the adjusted estimates
+      # if ( any(is.na(d$yi.adj.est)) | any(is.na(d$vi.adj.est)) ) {
+      # 
+      #   cat("\n\n TEMP FLAG yi.adj.est:\n")
+      #   print(head(d$yi.adj.est))
+      # 
+      #   cat("\n\n vi.adj.est:\n")
+      #   print(head(d$vi.adj.est))
+      # 
+      #   cat("\n\n mean(dp$Ci):\n")
+      #   print( mean(dp$Ci) )
+      # 
+      #   cat("\n\n mean(dp$affirm):\n")
+      #   print( mean(dp$affirm) )
+      # 
+      #   cat("\n\n shat2B:\n")
+      #   print( shat2B )
+      # 
+      #   cat("\n\n shat2B.nonaffirm.obs:\n")
+      #   print( shat2B.nonaffirm.obs )
+      # 
+      #   cat("\n\n shat2B.affirm.obs:\n")
+      #   print( shat2B.affirm.obs )
+      # }
+      # 
+      # if ( length(d$yi.adj.est) == 0 | length(d$vi.adj.est) == 0 ) {
+      # 
+      #   cat("\n\n TEMP FLAG yi.adj.est:\n")
+      #   print(head(d$yi.adj.est))
+      # 
+      #   cat("\n\n vi.adj.est:\n")
+      #   print(head(d$vi.adj.est))
+      # 
+      #   cat("\n\n mean(dp$Ci):\n")
+      #   print( mean(dp$Ci) )
+      # 
+      #   cat("\n\n mean(dp$affirm):\n")
+      #   print( mean(dp$affirm) )
+      # 
+      #   cat("\n\n shat2B:\n")
+      #   print( shat2B )
+      # 
+      #   cat("\n\n shat2B.nonaffirm.obs:\n")
+      #   print( shat2B.nonaffirm.obs )
+      # 
+      #   cat("\n\n shat2B.affirm.obs:\n")
+      #   print( shat2B.affirm.obs )
+      # }
       
       
       expect_equal( d$affirm,
@@ -556,8 +586,10 @@ doParallel.seconds = system.time({
     # this is like analyzing only preregistered studies
     dp.unhacked = dp %>% filter(hack == "no")
     
-    if ( i == 1 ) cat("\n\nHEAD OF DP:\n")
-    if ( i == 1 ) print(head(dp))
+    if ( verbose == TRUE ) {
+      if ( i == 1 ) cat("\n\nHEAD OF DP:\n")
+      if ( i == 1 ) print(head(dp))
+    }
     
     # ~ Start Values ------------------------------
     
@@ -674,7 +706,7 @@ doParallel.seconds = system.time({
     # Benchmark: using MhatB but with TRUE tau^2
     if ( "mbma-MhatB-true-t2" %in% all.methods ) {
       
-      rep.res = run_method_safe(method.label = c("mbma-true-t2"),
+      rep.res = run_method_safe(method.label = c("mbma-Mhat-true-t2"),
                                 method.fn = function() {
                                   
                                   # from inside PublicationBias::corrected_meta;
@@ -688,6 +720,7 @@ doParallel.seconds = system.time({
                                   meta.robu = robu( yi.adj.est ~ 1,
                                                     studynum = 1:nrow(dp),
                                                     data = dp,
+                                                    # here uses true t2:
                                                     userweights = weights / (vi + p$t2a + p$t2w),
                                                     var.eff.size = vi,
                                                     small = TRUE )
@@ -703,7 +736,7 @@ doParallel.seconds = system.time({
                                 },
                                 .rep.res = rep.res )
       
-      cat("\n doParallel flag: Done mbma-true-t2 if applicable")
+      cat("\n doParallel flag: Done mbma-Mhat-true-t2 if applicable")
       
     }
     
@@ -1032,7 +1065,7 @@ rs %>% mutate(MhatWidth = MHi - MLo,
   group_by(method) %>%
   summarise_if(is.numeric, function(x) round( meanNA(x), 2 ) )   
 
-
+any(is.na(rs$sancheck.MhatB))
 
 
 # # LOCAL

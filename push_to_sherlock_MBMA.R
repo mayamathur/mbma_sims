@@ -37,12 +37,6 @@ nano /home/groups/manishad/MBMA/sim_results/overall_stitched/sti*
 scp /Users/mmathur/Dropbox/Personal\ computer/Independent\ studies/2020/Multiple-bias\ meta-analysis\ \(MBMA\)/Linked\ to\ OSF\ \(MBMA\)/Simulation\ study/Code/* mmathur@login.sherlock.stanford.edu:/home/groups/manishad/MBMA
 
 
-# push helper.MBMA
-scp /Users/mmathur/Dropbox/Personal\ computer/Independent\ studies/2022/Conditional\ selection\ model\ \(MBMA\)/Linked\ to\ OSF\ \(MBMA\)/Simulation\ study/Code/helper_MBMA.R mmathur@login.sherlock.stanford.edu:/home/groups/manishad/MBMA
-
-# push doParallel only
-scp /Users/mmathur/Dropbox/Personal\ computer/Independent\ studies/2022/Conditional\ selection\ model\ \(MBMA\)/Linked\ to\ OSF\ \(MBMA\)/Simulation\ study/Code/doParallel.R mmathur@login.sherlock.stanford.edu:/home/groups/manishad/MBMA
-
 
 # SHERLOCK -> DESKTOP ----------------------------------
 

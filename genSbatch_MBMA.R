@@ -33,19 +33,11 @@ lapply( allPackages,
 #**you need to see all "TRUE" printed by this in order for the package to actually be loaded
 
 
-# IMPORTANT NOTES ABOUT SCEN PARAMS:
-# - Note that if you don't include any of these: jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var
-#  then you'll need to comment out Optim variables from the analysis.vars in make_agg_data and 
-#  also from mutate in there
-# - I think a similar thing will be true with the Rhats if you omit jeffreys-mcmc?
-# - Usually good to run naive because it affects start values for subsequent methods (i.e., prevents
-#   the start values from being the true ones)
 
 ### 2022-7-23 ###
 scen.params = tidyr::expand_grid(
-  # full list (save):
-  #rep.methods = "naive ; mbma-muB ; mbma-MhatB ; rtma-adj-muB ; rtma-adj-MhatB ; maon-adj-muB ; maon-adj-MhatB ; 2psm",
-  rep.methods = "naive ; mbma-MhatB ; maon-adj-MhatB ; 2psm",
+  
+  rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-true-t2 ; maon-adj-MhatB ; 2psm",
   
   
   # args from sim_meta_2
@@ -65,11 +57,12 @@ scen.params = tidyr::expand_grid(
   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
   
   # confounding parameters
-  muB = log(1.5, 3),
+  # NOT using log scale here b/c underlying data are continuous
+  muB = c(0.25, 0.5),
   sig2B = 0.5,
   prob.conf = c(0.5), 
   
-  # Stan control args
+  # Stan control args - only relevant if running RTMA
   stan.maxtreedepth = 25,
   stan.adapt_delta = 0.995,
   
@@ -102,8 +95,8 @@ write.csv( scen.params, "scen_params.csv", row.names = FALSE )
 source("helper_MBMA.R")
 
 # number of sbatches to generate (i.e., iterations within each scenario)
-n.reps.per.scen = 1000
-n.reps.in.doParallel = 1000  # previous: 600
+n.reps.per.scen = 2000
+n.reps.in.doParallel = 2000  # previous: 600
 ( n.files = ( n.reps.per.scen / n.reps.in.doParallel ) * n.scen )
 
 
@@ -119,7 +112,7 @@ runfile_path = paste(path, "/testRunFile.R", sep="")
 sbatch_params <- data.frame(jobname,
                             outfile,
                             errorfile,
-                            jobtime = "02:00:00",  # 2022-6-19 with RTMA had used 2:00 and 200 reps.in.doParallel
+                            jobtime = "00:30:00",  # 2022-6-19 with RTMA had used 2:00 and 200 reps.in.doParallel
                             quality = "normal",
                             node_number = 1,
                             mem_per_node = 64000,
@@ -140,10 +133,10 @@ n.files
 # run just the first one
 # sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
 
-# 45
+# 90
 path = "/home/groups/manishad/MBMA"
 setwd( paste(path, "/sbatch_files", sep="") )
-for (i in 1:45) {
+for (i in 1:90) {
   system( paste("sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/", i, ".sbatch", sep="") )
 }
 
@@ -159,7 +152,7 @@ source("helper_MBMA.R")
 missed.nums = sbatch_not_run( "/home/groups/manishad/MBMA/long_results",
                               "/home/groups/manishad/MBMA/long_results",
                               .name.prefix = "long_results",
-                              .max.sbatch.num = 13300 )
+                              .max.sbatch.num = 45 )
 
 
 

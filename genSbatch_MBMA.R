@@ -44,8 +44,8 @@ lapply( allPackages,
 ### 2022-7-23 ###
 scen.params = tidyr::expand_grid(
   # full list (save):
-  #rep.methods = "naive ; sapb-adj-muB ; sapb-adj-MhatB ; rtma-adj-muB ; rtma-adj-MhatB ; maon-adj-muB ; maon-adj-MhatB ; 2psm",
-  rep.methods = "naive ; sapb-adj-MhatB ; maon-adj-MhatB ; 2psm",
+  #rep.methods = "naive ; mbma-muB ; mbma-MhatB ; rtma-adj-muB ; rtma-adj-MhatB ; maon-adj-muB ; maon-adj-MhatB ; 2psm",
+  rep.methods = "naive ; mbma-MhatB ; maon-adj-MhatB ; 2psm",
   
   
   # args from sim_meta_2

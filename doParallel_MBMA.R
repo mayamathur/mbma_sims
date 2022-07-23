@@ -190,7 +190,7 @@ if ( run.local == TRUE ) {
     # full list (save):
     # rep.methods = "naive ; gold-std ; pcurve ; maon ; 2psm ; rtma ; jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var ; MBMA-mle-sd ; 2psm-MBMA-dataset ; prereg-naive",
     #rep.methods = "naive ; rtma ; 2psm",
-    rep.methods = "naive ; sapb-adj-muB",
+    rep.methods = "naive ; mbma-muB",
     
     # args from sim_meta_2
     Nmax = 30,
@@ -404,7 +404,7 @@ doParallel.seconds = system.time({
       # # also should be close to...
       # p$muB
       
-      # ~ Sample estimate of sig2B (only used for RTMA, not SAPB) -------------------
+      # ~ Sample estimate of sig2B (only used for RTMA, not MBMA) -------------------
       
       # from 2022-7-4 theory
       # estimate *underlying* P(A^*_i = a | C^*_i = 1) from P(A^*_i = a | C^*_i = 1, D^*_i = 1)
@@ -626,12 +626,12 @@ doParallel.seconds = system.time({
   
     # ~ New Methods ------------------------------
     
-    # ~~ ****** SAPB WITH CONFOUNDING ADJUSTMENT ------------------------------
+    # ~~ ****** MBMA ------------------------------
     
-    # using the dentifiable, reweighting-based sample estimate of muB ("MhatB")
-    if ( "sapb-adj-MhatB" %in% all.methods ) {
+    # using the identifiable, reweighting-based sample estimate of muB ("MhatB")
+    if ( "mbma-MhatB" %in% all.methods ) {
       
-      rep.res = run_method_safe(method.label = c("sapb-adj-MhatB"),
+      rep.res = run_method_safe(method.label = c("mbma-MhatB"),
                                 method.fn = function() {
                                   
                                   # from inside PublicationBias::corrected_meta;
@@ -667,15 +667,51 @@ doParallel.seconds = system.time({
                                 },
                                 .rep.res = rep.res )
       
-      cat("\n doParallel flag: Done sapb-adj-MhatB if applicable")
+      cat("\n doParallel flag: Done mbma-MhatB if applicable")
+      
+    }
+    
+    # Benchmark: using MhatB but with TRUE tau^2
+    if ( "mbma-MhatB-true-t2" %in% all.methods ) {
+      
+      rep.res = run_method_safe(method.label = c("mbma-true-t2"),
+                                method.fn = function() {
+                                  
+                                  # from inside PublicationBias::corrected_meta;
+                                  #  only change is that we want affirm indicator to be that of the *confounded* estimates, not the adjusted ones
+                                  # weight for model
+                                  weights = rep( 1, length(dp$yi.adj.est) )
+                                  # weight based on the affirm indicator of the *confounded* estimates
+                                  weights[ dp$affirm == FALSE ] = p$eta
+                                  
+                                  # fit weighted robust model
+                                  meta.robu = robu( yi.adj.est ~ 1,
+                                                    studynum = 1:nrow(dp),
+                                                    data = dp,
+                                                    userweights = weights / (vi + p$t2a + p$t2w),
+                                                    var.eff.size = vi,
+                                                    small = TRUE )
+                                  
+                                  # follow the same return structure as report_meta
+                                  list( stats = data.frame( Mhat = as.numeric(meta.robu$b.r),
+                                                            MLo = meta.robu$reg_table$CI.L,
+                                                            MHi = meta.robu$reg_table$CI.U,
+                                                            
+                                                            Shat = NA,
+                                                            SLo = NA,
+                                                            SHi = NA ) ) 
+                                },
+                                .rep.res = rep.res )
+      
+      cat("\n doParallel flag: Done mbma-true-t2 if applicable")
       
     }
     
     
     # using the true muB
-    if ( "sapb-adj-muB" %in% all.methods ) {
+    if ( "mbma-muB" %in% all.methods ) {
       
-      rep.res = run_method_safe(method.label = c("sapb-adj-muB"),
+      rep.res = run_method_safe(method.label = c("mbma-muB"),
                                 method.fn = function() {
                                   
                                   # from inside PublicationBias::corrected_meta;
@@ -711,54 +747,12 @@ doParallel.seconds = system.time({
                                 },
                                 .rep.res = rep.res )
       
-      cat("\n doParallel flag: Done sapb-adj-muB if applicable")
+      cat("\n doParallel flag: Done mbma-muB if applicable")
       
     }
     
     
-    
-    # ~~ Benchmark: SAPB with true TAU^2
-    
-    # makes little difference
-    if ( "sapb-true-t2" %in% all.methods ) {
-      
-      rep.res = run_method_safe(method.label = c("sapb-true-t2"),
-                                method.fn = function() {
-                                  
-                                  # from inside PublicationBias::corrected_meta;
-                                  #  only change is that we want affirm indicator to be that of the *confounded* estimates, not the adjusted ones
-                                  # weight for model
-                                  weights = rep( 1, length(dp$yi) )
-                                  # weight based on the affirm indicator of the *confounded* estimates
-                                  weights[ dp$affirm == FALSE ] = p$eta
-                                  
-                                  # use the true, unobserved tau^2
-                                  t2hat.naive = p$S^2
-                                  
-                                  # fit weighted robust model
-                                  meta.robu = robu( yi.adj.true ~ 1,
-                                                    studynum = 1:nrow(dp),
-                                                    data = dp,
-                                                    userweights = weights / (vi + t2hat.naive),
-                                                    var.eff.size = vi,
-                                                    small = TRUE )
-                                  
-                                  # follow the same return structure as report_meta
-                                  list( stats = data.frame( Mhat = as.numeric(meta.robu$b.r),
-                                                            MLo = meta.robu$reg_table$CI.L,
-                                                            MHi = meta.robu$reg_table$CI.U,
-                                                            
-                                                            Shat = NA,
-                                                            SLo = NA,
-                                                            SHi = NA ) ) 
-                                },
-                                .rep.res = rep.res )
-      
-      cat("\n doParallel flag: Done sapb-true-t2 if applicable")
-      
-      
-    }
-    
+  
     
     #srr()
     

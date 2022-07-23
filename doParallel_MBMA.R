@@ -240,12 +240,12 @@ if ( run.local == TRUE ) {
 
 # COMPILE STAN MODEL ONCE AT BEGINNING------------------------------
 
-if ( run.local == TRUE ) setwd(code.dir)
-
-if ( run.local == FALSE ) setwd(path)
-
-#@TEMP: NOT RUNNING RTMA
-source("init_stan_model_MBMA.R")
+# only needed if running RTMA
+# if ( run.local == TRUE ) setwd(code.dir)
+# 
+# if ( run.local == FALSE ) setwd(path)
+# 
+# source("init_stan_model_MBMA.R")
 
 
 
@@ -321,7 +321,7 @@ doParallel.seconds = system.time({
     d$Zi = d$yi / sqrt(d$vi)
     
     
-    # ~ MBMA: Pre-Adjust Estimates, Crit Values, Variances Using TRUE muB, sigB ------------------------------
+    # ~ MBMA: Gold-Standard Confounding Adjustment (TRUE muB, sigB) ------------------------------
     
     
     if ( any(d$Ci == 1) ) {
@@ -354,8 +354,7 @@ doParallel.seconds = system.time({
  
     
     
-    # ***** 2022-6-28 - NEW ADJUSTMENT BASED ON ID'ABLE BIAS EXPECTATION: -----------------
-    
+    # ***** MBMA: Identifiable Confounding Adjustment (ESTIMATED muB, sigB) -----------------
     
     # dataset of only favored AND published results
     # (used in this section)
@@ -388,12 +387,10 @@ doParallel.seconds = system.time({
         MhatB.nonaffirm.obs = 0
       }
       
-      
       denom = P.affirm.pub + p$eta * P.nonaffirm.pub
       
       # ~ Sample estimate of muB -------------------
-      # called "gamma" on iPad
-      # a sample estimate of muB
+
       ( MhatB = (1/denom) * ( P.nonaffirm.pub * p$eta * MhatB.nonaffirm.obs +
                                 P.affirm.pub * MhatB.affirm.obs ) )
       
@@ -432,10 +429,10 @@ doParallel.seconds = system.time({
         shat2B.nonaffirm.obs = 0
       }
       
-      # IMPORTANT: shat2B.affirm.obs could be NA if there is only 1 study with C^*i = 1 and affirm = 1 (or same for affirm = 0)
+      # IMPORTANT: at this point, shat2B.affirm.obs could be NA if there is only 1 study
+      #  with C^*i = 1 and affirm = 1 (or same for affirm = 0)
       # then shat2B will be NA, and also vi.adj.est
       
- 
       termA = Pstar.affirm*shat2B.affirm.obs + Pstar.nonaffirm*shat2B.nonaffirm.obs
       termB = ( Pstar.affirm * Pstar.nonaffirm ) * ( MhatB.affirm.obs^2 + MhatB.nonaffirm.obs^2 )
       termC = 2 * ( Pstar.affirm * Pstar.nonaffirm ) * ( MhatB.affirm.obs * MhatB.nonaffirm.obs )
@@ -596,24 +593,6 @@ doParallel.seconds = system.time({
                                 .rep.res = rep.res )
     }
     
-  
-    
-    # # ~~ Gold-Standard Meta-Analysis (ALL FIRST Draws)
-    # 
-    # if ( "gold-std" %in% all.methods ) {
-    #   
-    #   rep.res = run_method_safe(method.label = c("gold-std"),
-    #                             method.fn = function() {
-    #                               mod.all = rma( yi = d.first$yi,
-    #                                              vi = d.first$vi,
-    #                                              method = "REML",
-    #                                              knha = TRUE )
-    #                               
-    #                               report_meta(mod.all, .mod.type = "rma")
-    #                             },
-    #                             .rep.res = rep.res )
-    # }
-
     
     # ~~ 2PSM (All Published Draws)
     
@@ -648,10 +627,8 @@ doParallel.seconds = system.time({
     # ~ New Methods ------------------------------
     
     # ~~ ****** SAPB WITH CONFOUNDING ADJUSTMENT ------------------------------
-
     
-    
-    # using the reweighting-based sample estimate of muB ("MhatB")
+    # using the dentifiable, reweighting-based sample estimate of muB ("MhatB")
     if ( "sapb-adj-MhatB" %in% all.methods ) {
       
       rep.res = run_method_safe(method.label = c("sapb-adj-MhatB"),
@@ -740,8 +717,9 @@ doParallel.seconds = system.time({
     
     
     
-    # ~~ Benchmark: SAPB WITH TRUE TAU^2
+    # ~~ Benchmark: SAPB with true TAU^2
     
+    # makes little difference
     if ( "sapb-true-t2" %in% all.methods ) {
       
       rep.res = run_method_safe(method.label = c("sapb-true-t2"),
@@ -786,11 +764,9 @@ doParallel.seconds = system.time({
     
     # ~~ ********* RTMA WITH CONFOUNDING ADJUSTMENT ------------------------------
     
-   
+   # RTMA with true bias parameters
     if ( "rtma-adj-muB" %in% all.methods ) {
-    #if ( FALSE ) {
-      
-      # # temp for refreshing code
+      # # temp for refreshing stan code
       # path = "/home/groups/manishad/MBMA"
       #setwd(path)
       # source("helper_MBMA.R")
@@ -828,12 +804,10 @@ doParallel.seconds = system.time({
     
     
     
-    # 2022-7-5: using estimated bias parameters
+    # RTMA with identifiable (estimated) bias parameters
     
     if ( "rtma-adj-MhatB" %in% all.methods ) {
-      #if ( FALSE ) {
-      
-      # # temp for refreshing code
+      # # temp for refreshing stan code
       # path = "/home/groups/manishad/MBMA"
       #setwd(path)
       # source("helper_MBMA.R")
@@ -874,7 +848,7 @@ doParallel.seconds = system.time({
     
     # ~~ ****** MAP (SD param) ------------------------------
     
-    #@ THIS IS STILL USING THE TRUE ADJUSTMENT
+    # THIS IS STILL USING THE TRUE ADJUSTMENT
     if ( "jeffreys-adj-sd" %in% all.methods ) {
 
       rep.res = run_method_safe(method.label = c("jeffreys-adj-sd"),
@@ -897,24 +871,6 @@ doParallel.seconds = system.time({
     
     # ~~ ******** MAON WITH CONFOUNDING ADJUSTMENT --------------------------------------
     
-    # using the sample estimate of muB
-    if ( "maon-adj-MhatB" %in% all.methods ) {
-      
-      rep.res = run_method_safe(method.label = c("maon-adj-MhatB"),
-                                method.fn = function() {
-                                  mod = robu( yi.adj.est ~ 1, 
-                                              data = dpn, 
-                                              studynum = 1:nrow(dpn),
-                                              var.eff.size = vi,  # using original variance
-                                              small = TRUE )
-                                  
-                                  report_meta(mod, .mod.type = "robu")
-                                },
-                                .rep.res = rep.res )
-      
-    }
-    
-    
     # using the true muB
     if ( "maon-adj-muB" %in% all.methods ) {
       
@@ -932,30 +888,23 @@ doParallel.seconds = system.time({
       
     }
     
-  
-    # ~ Secondary/Sanity-Check Methods ------------------------------
-
-    # ~~ Naive (Unhacked Only) 
-  
-    if ( "prereg-naive" %in% all.methods &
-         nrow(dp.unhacked) > 0 ) {
-      rep.res = run_method_safe(method.label = c("prereg-naive"),
+    # using the sample estimate of muB
+    if ( "maon-adj-MhatB" %in% all.methods ) {
+      
+      rep.res = run_method_safe(method.label = c("maon-adj-MhatB"),
                                 method.fn = function() {
-                                  mod = rma( yi = dp.unhacked$yi,
-                                             vi = dp.unhacked$vi,
-                                             method = "REML",
-                                             knha = TRUE )
+                                  mod = robu( yi.adj.est ~ 1, 
+                                              data = dpn, 
+                                              studynum = 1:nrow(dpn),
+                                              var.eff.size = vi,  # using original variance
+                                              small = TRUE )
                                   
-                                  report_meta(mod, .mod.type = "rma")
+                                  report_meta(mod, .mod.type = "robu")
                                 },
                                 .rep.res = rep.res )
       
-      cat("\n doParallel flag: Done prereg-naive if applicable")
     }
     
-    
-
-  
     
     # ~ Add Scen Params and Sanity Checks --------------------------------------
     
@@ -975,7 +924,6 @@ doParallel.seconds = system.time({
     
     # add info about simulated datasets
     # "ustudies"/"udraws" refers to underlying studies/draws prior to hacking or publication bias
-    
     sancheck.prob.published.is.confounded = mean( dp$Ci == 1 )
     sancheck.prob.published.affirm.is.confounded = mean( dp$Ci[ dp$affirm == 1 ] == 1 )
     sancheck.prob.published.nonaffirm.is.confounded = mean( dp$Ci[ dp$affirm == 0 ] == 0 )
@@ -1007,8 +955,6 @@ doParallel.seconds = system.time({
     ( sancheck.prob.published.nonaffirm.is.hacked = mean( dp$hack[ dp$affirm == 0 ] != "no" ) )
     # this will be >0
     ( sancheck.prob.published.affirm.is.hacked = mean( dp$hack[ dp$affirm == 1 ] != "no" ) )
-    
-    # average yi's 
     
     rep.res = rep.res %>% add_column(   sancheck.dp.k = nrow(dp),
                                         sancheck.dp.k.affirm = sum(dp$affirm == TRUE),
@@ -1064,8 +1010,8 @@ doParallel.seconds = system.time({
                                         
                                         sancheck.prob.published.nonaffirm.is.hacked = sancheck.prob.published.nonaffirm.is.hacked,
                                         
-                                        # sanity checks for gamma, the bias adjustment
-                                        # E[Bi^* | Ci^* = 1], the target for gamma:
+                                        # sanity checks for MhatB
+                                        # E[Bi^* | Ci^* = 1], the target for MhatB:
                                         sancheck.MhatB = MhatB,
                                         #@note: Di = 1 here is FAVORING indicator, so this is still the mean Bi among underlying (pre-SAS) estimates
                                         # this is an underlying SAMPLE estimate of the truth; should approximately agree with MhatB and muB

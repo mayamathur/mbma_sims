@@ -32,8 +32,6 @@ lapply( allPackages,
 
 #**you need to see all "TRUE" printed by this in order for the package to actually be loaded
 
-# set up sim params for cluster
-
 
 # IMPORTANT NOTES ABOUT SCEN PARAMS:
 # - Note that if you don't include any of these: jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var
@@ -43,33 +41,33 @@ lapply( allPackages,
 # - Usually good to run naive because it affects start values for subsequent methods (i.e., prevents
 #   the start values from being the true ones)
 
-
-### 2022-6-19 and 2022-6-29 - EARLY MBMA TEST (NO HACKING) ###
+### 2022-7-23 ###
 scen.params = tidyr::expand_grid(
   # full list (save):
-  # rep.methods = "naive ; gold-std ; pcurve ; maon ; 2psm ; rtma ; jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var ; MBMA-mle-sd ; 2psm-MBMA-dataset ; prereg-naive",
-  #rep.methods = "naive ; rtma ; 2psm",
-  rep.methods = "naive ; sapb-adj-muB ; sapb-adj-MhatB ; rtma-adj-muB ; rtma-adj-MhatB ; maon-adj-muB ; maon-adj-MhatB ; 2psm",
+  #rep.methods = "naive ; sapb-adj-muB ; sapb-adj-MhatB ; rtma-adj-muB ; rtma-adj-MhatB ; maon-adj-muB ; maon-adj-MhatB ; 2psm",
+  rep.methods = "naive ; sapb-adj-MhatB ; maon-adj-MhatB ; 2psm",
+  
   
   # args from sim_meta_2
-  Nmax = 30,
+  Nmax = 1,
   Mu = c(0.5),
-  t2a = c(0, 0.2^2, 0.5^2),
-  t2w = c(0.2^2),
+  t2a = c(0, 0.25^2, 0.5^2), 
+  t2w = c(0),
   m = 50,
   
-  hack = c("favor-best-affirm-wch", "affirm"),
+  hack = c("affirm"),  # but there will not be any hacking since prob.hacked is 0
   rho = c(0),
-  k.pub.nonaffirm = c(5, 10, 20, 50),
-  prob.hacked = c(0.5, 0),
+  k.pub.nonaffirm = c(5, 10, 15, 30, 50),
+  prob.hacked = c(0),
   
   eta = c(1, 5, 10),
   
   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
   
-  muB = log(1.5),
+  # confounding parameters
+  muB = log(1.5, 3),
   sig2B = 0.5,
-  prob.conf = c(0.5), #@temp: I removed unconfounded scens since methods don't handle
+  prob.conf = c(0.5), 
   
   # Stan control args
   stan.maxtreedepth = 25,
@@ -78,51 +76,8 @@ scen.params = tidyr::expand_grid(
   get.CIs = TRUE,
   run.optimx = FALSE )
 
-
-# ### FULL VERSION - AS IN 2022-5-17 SAPH SIMS ###
-# scen.params = tidyr::expand_grid(
-#   # full list (save):
-#   # rep.methods = "naive ; gold-std ; pcurve ; maon ; 2psm ; jeffreys-mcmc ; jeffreys-sd ; jeffreys-var ; mle-sd ; mle-var ; MBMA-mle-sd ; 2psm-MBMA-dataset ; prereg-naive",
-#    rep.methods = "naive ; gold-std ; pcurve ; maon ; 2psm ; jeffreys-mcmc ; jeffreys-sd ; prereg-naive",
-#   #rep.methods = "naive ; jeffreys-mcmc ; jeffreys-sd",
-# 
-#   # args from sim_meta_2
-#   Nmax = 30,
-#   Mu = c(0.5),
-#   t2a = c(0, 0.2^2, 0.3^2, 0.5^2),
-#   t2w = c(0.2^2),
-#   m = 50,
-# 
-#   hack = c("favor-best-affirm-wch", "affirm", "affirm2"),
-#   rho = c(0),
-#   k.pub.nonaffirm = c(10, 15, 20, 30, 50, 70, 100),
-#   prob.hacked = c(0.8),
-# 
-#   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
-#    # true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)",
-#    #                   "rbeta(n = 1, 2, 5)",
-#    #                   "draw_lodder_se()"),
-# 
-#   # Stan control args
-#   #@INCREASED 2022-4-26
-#   stan.maxtreedepth = 25,
-#   stan.adapt_delta = 0.995,
-# 
-#   get.CIs = TRUE,
-#   run.optimx = FALSE )
-
-
-
-# # OLD - Do I still need these?
-# # hold constant the number of UNHACKED studies to 800
-# scen.params$k[ scen.params$k.hacked == 800 ] = 800*2
-# table(scen.params$k, scen.params$k.hacked)
-# 
-# # remove nonsense combinations
-# # rho > 0 is pointless if there's only 1 draw
-# scen.params = scen.params %>% dplyr::filter( !(rho > 0 & Nmax == 1) )
-
-# no need to run both hacking types when p.hacked = 0
+# if there are multiple hacking types, remove redundant combos
+# i.e., only need 1 hack type with p.hacked = 0
 first.hack.type = unique(scen.params$hack)[1]
 scen.params = scen.params %>% filter( prob.hacked > 0 | (prob.hacked == 0 & hack == first.hack.type) )
 
@@ -147,8 +102,8 @@ write.csv( scen.params, "scen_params.csv", row.names = FALSE )
 source("helper_MBMA.R")
 
 # number of sbatches to generate (i.e., iterations within each scenario)
-n.reps.per.scen = 600
-n.reps.in.doParallel = 600  # previous: 600
+n.reps.per.scen = 1000
+n.reps.in.doParallel = 1000  # previous: 600
 ( n.files = ( n.reps.per.scen / n.reps.in.doParallel ) * n.scen )
 
 
@@ -161,8 +116,6 @@ errorfile = paste("rm_", 1:n.files, ".err", sep="")
 write_path = paste(path, "/sbatch_files/", 1:n.files, ".sbatch", sep="")
 runfile_path = paste(path, "/testRunFile.R", sep="")
 
-
-# 2022-2-27: timing benchmark: with all methods and sim.reps = 1, took 2.5 min
 sbatch_params <- data.frame(jobname,
                             outfile,
                             errorfile,
@@ -187,10 +140,10 @@ n.files
 # run just the first one
 # sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
 
-# 81
+# 45
 path = "/home/groups/manishad/MBMA"
 setwd( paste(path, "/sbatch_files", sep="") )
-for (i in 1:81) {
+for (i in 1:45) {
   system( paste("sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/", i, ".sbatch", sep="") )
 }
 

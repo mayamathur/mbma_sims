@@ -37,8 +37,9 @@ select = dplyr::select
 options(scipen=999)
 
 # control which results should be redone and/or overwritten
+# e.g., sim_plot_multiple_outcomes
 #@ not all fns respect this setting
-overwrite.res = FALSE
+overwrite.res = TRUE
 
 
 # ~~ Set directories -------------------------
@@ -96,7 +97,7 @@ table(agg$sim.reps.actual)
 init_var_names()
 
 
-# BEST AND WORST PERFORMANCE IN CORRECTLY-SPECIFIED SCENS -------------------------
+# BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
 
 # scens where RTMA is correctly specified, but all other methods aren't
 as.data.frame( agg %>% 
@@ -108,6 +109,8 @@ as.data.frame( agg %>%
                             median(MhatCover),
                             max(MhatWidth)) )
 
+
+#bm: Make one-off stats for paper about the above :)
 
 # ******** PLOTS (BIG AND NOT PRETTIFIED) -------------------------
 
@@ -223,54 +226,47 @@ for ( .t2a in unique(agg$t2a) ) {
 
 # ******** PLOTS (SIMPLE AND PRETTY FOR MAIN TEXT) -------------------------
 
-#bm: Remaining 6 ones keep failing -- is it the missing MhatB again?
-#  Then re-stitch.
-#  then edit sim_plot_multiple_outcomes below :)
-
 # for each hack type, arrange plots so each facet row is an outcome
 ( all.methods = unique(agg$method.pretty) )
+toDrop = c("MBMA (true t2)", "MAN adjusted")  # methods to exclude from plots
 ( method.keepers = all.methods[ !is.na(all.methods) &
-                                  all.methods != "Gold standard"] )
+                                  !(all.methods %in% toDrop) ] )
 
 
 # outcomes to show in main text figures
 YnamesMain = c("MhatBias", "MhatCover", "MhatWidth")
 
-# outcomes to show in supplement figures
-YnamesSupp = c("MhatBias", "MhatCover", "MhatWidth")
+
+
+pretty.results.dir = paste(results.dir, "/Prettified plots", sep = "")
+
+t2a.levels = unique(agg$t2a)
 
 # this dataset will be one full-page figure in main text or Supp depending on hack type
 # by default, these write only to Overleaf dir
-pl1 = sim_plot_multiple_outcomes(.hack = "favor-best-affirm-wch",
-                                 .ggtitle = bquote( "SWS favors best affirmative; stringent SAS;" ~ mu ~ "= 0.5" ),
-                                 .local.results.dir = results.dir )
 
+for ( i in 1:length(t2a.levels) ) {
+  taui = sqrt(t2a.levels[i])
+  sim_plot_multiple_outcomes( .t2a = t2a.levels[i],
+                              .ggtitle = bquote( tau ~ " = " ~ .(taui) ),
+                              .local.results.dir = pretty.results.dir )
+}
 
-pl2 = sim_plot_multiple_outcomes(.hack = "affirm",
-                                 .ggtitle = bquote( "SWS favors first affirmative; stringent SAS; " ~ mu ~ "= 0.5" ),
-                                 .local.results.dir = results.dir)
-
-
-
-pl3 = sim_plot_multiple_outcomes(.hack = "affirm2",
-                                 .ggtitle = bquote( "SWS favors first affirmative; no SAS; " ~ mu ~ "= 0.5" ),
-                                 .local.results.dir = results.dir)
+ 
 
 
 
-
-
-# 2022-4-4: EFFECT OF SCEN PARAMS ON DATASETS -------------------------
-
-param.vars.manip2 = drop_vec_elements(param.vars.manip, "method")
-
-t = agg %>% group_by_at( param.vars.manip2 ) %>%
-  # keep only scens in main text
-  filter(Mu == 0.5 & true.sei.expr == "0.02 + rexp(n = 1, rate = 3)") %>%
-  select( all_of( contains("sancheck") ) ) %>%
-  mutate_if( is.numeric, function(x) round(x, 2) )
-
-setwd(results.dir)
-setwd("Sanity checks")
-write.xlsx( as.data.frame(t), "table_sanchecks.xlsx")
+# # 2022-4-4: EFFECT OF SCEN PARAMS ON DATASETS -------------------------
+# 
+# param.vars.manip2 = drop_vec_elements(param.vars.manip, "method")
+# 
+# t = agg %>% group_by_at( param.vars.manip2 ) %>%
+#   # keep only scens in main text
+#   filter(Mu == 0.5 & true.sei.expr == "0.02 + rexp(n = 1, rate = 3)") %>%
+#   select( all_of( contains("sancheck") ) ) %>%
+#   mutate_if( is.numeric, function(x) round(x, 2) )
+# 
+# setwd(results.dir)
+# setwd("Sanity checks")
+# write.xlsx( as.data.frame(t), "table_sanchecks.xlsx")
 

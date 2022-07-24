@@ -92,7 +92,7 @@ make_agg_data = function( .s,
                  "t2w",
                  "m",
                  
-         
+                 
                  "hack",
                  "rho",
                  "k.pub.nonaffirm",
@@ -233,7 +233,7 @@ make_agg_data = function( .s,
                                             0.95, na.rm = TRUE),
     ) 
   
-
+  
   # now look for which variables should have their means taken
   # this step must happen here, after we've started making s2, 
   #  so that the takeMean vars are actually in s2
@@ -304,9 +304,9 @@ wrangle_agg_local = function(agg) {
   agg$method.pretty[ agg$method == c("maon-adj-MhatB") ] = "MAN adjusted"
   agg$method.pretty[ agg$method == c("2psm") ] = "SM"
   agg$method.pretty[ agg$method == c("mbma-MhatB") ] = "MBMA" 
-  agg$method.pretty[ agg$method == c("mbma-MhatB") ] = "MBMA (true t2)"
+  agg$method.pretty[ agg$method == c("mbma-Mhat-true-t2") ] = "MBMA (true t2)"
   table(agg$method, agg$method.pretty)
-
+  
   
   agg$true.sei.expr = as.factor(agg$true.sei.expr)
   
@@ -454,7 +454,7 @@ quick_5var_agg_plot = function(.Xname,
   }
   
   return(p)
-
+  
 }
 
 
@@ -462,87 +462,51 @@ quick_5var_agg_plot = function(.Xname,
 #  AND supplement figs (1 entire plot per outcome)
 # important: to show some outcomes ONLY in supp (e.g., MhatTestReject), you should have global vars like this:
 # YnamesMain = c("MhatBias", "MhatCover", "MhatWidth")
-# YnamesSupp = c("MhatBias", "MhatCover", "MhatWidth",
-#                "MhatTestReject")
 # the outcome(s) that only go in supp should be at the end of list
-sim_plot_multiple_outcomes = function(.hack,
-                                      .y.breaks = NULL,
-                                      .ggtitle = "",
-                                      .local.results.dir = NA) {
+sim_plot_multiple_outcomes = function( .t2a,  # subset to be analyzed
+                                       .y.breaks = NULL,
+                                       .ggtitle = "",
+                                       .local.results.dir = NA) {
+  
+  #TEST ONLY
+  # .y.breaks = NULL
+  # .ggtitle = ""
+  # .local.results.dir = pretty.results.dir  
+  # .t2a = 0.25
   
   .dat = agg
-  # when using different levels of t2w:
-  # .dat$facetVar = paste( "t2a=", .dat$t2a, "; t2w=", .dat$t2w, sep = "")
-  #.dat$facetVar = paste( "t2a = ", .dat$t2a, sep = "")
-  .dat$facetVar = sqrt(.dat$t2a)
   
   .dat = .dat %>% filter(method.pretty %in% method.keepers &
-                           Mu == 0.5 &
-                           true.sei.expr == "0.02 + rexp(n = 1, rate = 3)" &
-                           hack == .hack )
+                           t2a == .t2a )
   
   
-  # force ordering of methods to match 3_analyze_lodder.R
+  # force ordering of methods
   correct.order = c("Uncorrected",
-                    "SM",
-                    "Unhacked only",
-                    
-                    "RTMA",
-                    "MAN",
-                    "SMKH")
-
+                    "MBMA",
+                    "SM")
+  
   
   .dat$method.pretty = factor(.dat$method.pretty, levels = rev(correct.order))
   
   
   # ~~ Make plot for each outcome in YNamesMain ------------
   plotList = list()
-  plotListSupp = list()
   
-  for ( .Yname in YnamesSupp ) {
+  for ( .Yname in YnamesMain ) {
     
-    i = which(YnamesSupp == .Yname)
+    i = which(YnamesMain == .Yname)
     
     .dat$Y = .dat[[.Yname]]
     
-    # ~~ Set ggplot color palette ----
-    # to see all palettes:
-    # par(mar=c(3,4,2,2))
-    # display.brewer.all()
-    
-    # # SAVE - this is if you want to get colors automatically
-    # n.colors.needed = length(unique(.dat$method.pretty))
-    # .colors = brewer.pal(n = n.colors.needed, name = "Dark2")
-    # if( length(.colors) > n.colors.needed ) .colors = .colors[1:n.colors.needed]
-    # # this maps the colors onto levels of the factor
-    # names(.colors) = levels( factor(.dat$method.pretty) )
-    # # highlight certain methods
-    # .colors[ names(.colors) == "RTMA" ] = "red"
-    
-    
-    # set color palette to match 3_analyze_lodder.R
-    .colors = c(#SMKH = "#1B9E77",
-                MAN = "#ff9900",
-                RTMA = "red",
-                `Unhacked only` = "#3399ff",
-                SM = "#00cc00",
-                Uncorrected = "black")
+    # set color palette 
+    .colors = c(#MAN = "#ff9900",
+      MBMA = "red",
+      #`Unhacked only` = "#3399ff",
+      SM = "#00cc00",
+      Uncorrected = "black")
     
     myColorScale = scale_colour_manual(values = .colors)
     
-    # ~~ Set ggplot linetype scale ----
-    # by default, dotted lines
-    # but use solid lines for new proposed methods
-    .lty = rep("dashed", nuni(.dat$method.pretty))
-    names(.lty) = names(.colors)
-    
-    newMethods = c(#"SMKH",
-                   "MAN",
-                   "RTMA")
-    
-    .lty[ names(.lty) %in% newMethods ] = "solid"
-    
-    myLtyScale = scale_linetype_manual(values = .lty)
     
     # ~~ Set axis titles ---------
     
@@ -564,43 +528,10 @@ sim_plot_multiple_outcomes = function(.hack,
     p = ggplot( data = .dat,
                 aes( x = k.pub.nonaffirm,
                      y = Y,
-                     color = method.pretty,
-                     lty = method.pretty) ) +
-      
-      #geom_point() +
-      
-      geom_line() +
-      
-      # manually provided colors
-      myColorScale +
-      
-      # manually provided linetypes
-      myLtyScale +
-      
-      # base_size controls all text sizes; default is 11
-      # https://ggplot2.tidyverse.org/reference/ggtheme.html
-      theme_bw(base_size = 20) +
-      
-      #scale_x_log10( breaks = unique(.dp$n) )
-      # use only some values
-      #scale_x_log10( breaks = c(500, 1000) ) +
-      
-      xlab(.xlab) +
-      scale_x_continuous( breaks = c(10, 40, 70, 100) ) +
-      
-      ylab(.ylab) +
-      guides( color = guide_legend(title = "Method") ) +
-      theme_bw() +
-      theme( text = element_text(face = "bold"),
-             
-             panel.grid.major = element_blank(),
-             panel.grid.minor = element_blank()
-             # reduce whitespace for combined plot
-             # https://github.com/wilkelab/cowplot/issues/31
-             #plot.margin = unit(c(0, 0, 0, 0), "cm")
-      )
+                     color = method.pretty ) ) 
     
     # ~ Add reference lines ----------
+    # doign this here so the lines are *under* the lines for the methods 
     if ( str_contains(x = .Yname, pattern = "Cover") ) {
       p = p + geom_hline( yintercept = 0.95,
                           lty = 1,
@@ -615,12 +546,54 @@ sim_plot_multiple_outcomes = function(.hack,
       
     }
     
+    
+    p = p + geom_line() +
+      
+      # manually provided colors
+      myColorScale +
+      
+      # manually provided linetypes
+      #myLtyScale +
+      
+      # base_size controls all text sizes; default is 11
+      # https://ggplot2.tidyverse.org/reference/ggtheme.html
+      theme_bw(base_size = 20) +
+      
+      #scale_x_log10( breaks = unique(.dp$n) )
+      # use only some values
+      #scale_x_log10( breaks = c(500, 1000) ) +
+      
+      xlab(.xlab) +
+      scale_x_continuous( breaks = c(5, 10, 15, 30, 50) ) +
+      
+      ylab(.ylab) +
+      guides( color = guide_legend(title = "Method") ) +
+      theme_bw() +
+      theme( text = element_text(face = "bold"),
+             
+             panel.grid.major = element_blank(),
+             panel.grid.minor = element_blank(),
+             
+             strip.text = element_text(face = "bold", size = rel(1.1))
+             #strip.background = element_rect(fill = "lightblue", colour = "black", size = 1)
+             
+             # reduce whitespace for combined plot
+             # https://github.com/wilkelab/cowplot/issues/31
+             #plot.margin = unit(c(0, 0, 0, 0), "cm")
+      )
+    
+    
     # ~ Add facetting ----------
     # this block needs to be after adding geom_hlines so that the lines obey the facetting
-    p = p + facet_wrap( ~ facetVar,
-                        ncol = length( unique(.dat$facetVar) ),
-                        labeller = label_bquote( cols = tau[a] ~ "=" ~ .(facetVar) ) ) 
- 
+    # p = p + facet_wrap( ~ facetVar,
+    #                     ncol = length( unique(.dat$facetVar) ),
+    #                     labeller = label_bquote( cols = tau[a] ~ "=" ~ .(facetVar) ) ) 
+    
+    p = p + facet_grid( muB ~ eta,
+                        #ncol = length( unique(.dat$eta) ),
+                        labeller = label_bquote( rows = {mu^"*"}[B] ~ "=" ~ .(muB),
+                                                 cols = eta ~ "=" ~ .(eta) ) ) 
+    
     
     # ~ Set Y-axis breaks ----------
     # other outcomes follow rules or can just use default axis breaks
@@ -629,20 +602,15 @@ sim_plot_multiple_outcomes = function(.hack,
       # set default breaks
       if ( grepl(pattern = "Cover", .Yname) ){
         y.breaks = seq(0, 1, .1)
-        # possibly expanded breaks for supplement version
-        y.breaks.supp = seq(0, 1, .1)
         
       } else if ( grepl(pattern = "Bias", .Yname) ){
-        y.breaks = seq(-0.4, 0.5, .1)
-        y.breaks.supp = seq(-1, 1, 0.1)
+        y.breaks = seq(-0.1, 0.5, .1)
         
       } else if ( grepl(pattern = "Width", .Yname) ){
-        y.breaks = seq(0, 2, .25)
-        y.breaks.supp = seq(0, 3, 0.25)
+        y.breaks = seq(0, 1, .2)
         
       } else if ( grepl(pattern = "Reject", .Yname) ){
         y.breaks = seq(0, 1, .1)
-        y.breaks.supp = y.breaks
         
       } else {
         # otherwise keep the default limits from ggplot
@@ -691,33 +659,6 @@ sim_plot_multiple_outcomes = function(.hack,
     if ( .Yname %in% YnamesMain ) plotList[[i]] = p
     
     
-    
-    # ~ Modify plot for supplement --------------
-    
-    # expand axis limits and have 2 rows per outcome
-    p = suppressMessages( p + coord_cartesian( ylim = c( min(y.breaks.supp), max(y.breaks.supp) ) ) +
-      scale_y_continuous( breaks = y.breaks.supp) +
-
-      facet_wrap( ~ facetVar,
-                  ncol = 2,  # fix to 2 becuase will take up whole page
-                  labeller = label_bquote( cols = tau[a] ~ "=" ~ .(facetVar) ) ) + 
-
-      # theme_bw(base_size=21) +
-      # theme(text = element_text(face = "bold"),
-      #       legend.position = "bottom") +
-      
-      # always show legend
-      theme(legend.position = "bottom") +
-        
-      # always show title
-      ggtitle(.ggtitle) +
-      # fix order of legend items
-      guides(colour = guide_legend(reverse = TRUE),
-             linetype = guide_legend(reverse = TRUE) ) ) 
-    
-    
-    plotListSupp[[i]] = p 
-    
   }  # end "for ( Y in YnamesMain )"
   
   # ~~ Nicely arrange plots as columns ------------
@@ -732,8 +673,7 @@ sim_plot_multiple_outcomes = function(.hack,
   
   
   # ~~ Write combined plot to Overleaf and local dir ------------
-  name = paste( tolower(.hack),
-                "_Mu0.5.pdf",
+  name = paste( "tau=", sqrt(.t2a), ".pdf",
                 sep = "" )
   
   if ( overwrite.res == TRUE ) {
@@ -741,39 +681,39 @@ sim_plot_multiple_outcomes = function(.hack,
                .plot = pCombined,
                .width = 8,
                .height = 11,
-               .results.dir = paste(.local.results.dir, "Simple plots in main text", sep = "/"),
+               .results.dir = .local.results.dir,
                .overleaf.dir = overleaf.dir.figs )
   } else {
     message("\n\nNot writing the plot to local dir or Overleaf because overwrite.res = FALSE")
   }
   
-  # ~~ Save each individual supplement plot ------------
-  
-  if ( overwrite.res == TRUE ) {
-  
-    for ( .Yname in YnamesSupp ) {
-      name = paste( "supp_",
-                    tolower(.hack),
-                    "_",
-                    tolower(.Yname),
-                    "_Mu0.5.pdf",
-                    sep = "" )
-      my_ggsave( name = name,
-                 .plot = plotListSupp[[ which(YnamesSupp == .Yname) ]],
-                 .width = 8,
-                 .height = 11,
-                 .results.dir = paste(.local.results.dir, "Simple plots in Supplement", sep = "/"),
-                 .overleaf.dir = overleaf.dir.figs )
-      
-    }
-    
-  } else {
-    message("\n\nNot writing the plot to local dir or Overleaf because overwrite.res = FALSE")
-  }
+  # # ~~ Save each individual supplement plot ------------
+  # 
+  # if ( overwrite.res == TRUE ) {
+  # 
+  #   for ( .Yname in YnamesMain ) {
+  #     name = paste( "supp_",
+  #                   tolower(.hack),
+  #                   "_",
+  #                   tolower(.Yname),
+  #                   "_Mu0.5.pdf",
+  #                   sep = "" )
+  #     my_ggsave( name = name,
+  #                .plot = plotListSupp[[ which(YnamesMain == .Yname) ]],
+  #                .width = 8,
+  #                .height = 11,
+  #                .results.dir = paste(.local.results.dir, "Simple plots in Supplement", sep = "/"),
+  #                .overleaf.dir = overleaf.dir.figs )
+  #     
+  #   }
+  #   
+  # } else {
+  #   message("\n\nNot writing the plot to local dir or Overleaf because overwrite.res = FALSE")
+  # }
   
   # ~~ Print plot and return the list --------------
   pCombined
-  return(plotListSupp)
+  return(plotList)
 } 
 
 
@@ -1028,8 +968,8 @@ update_result_csv = function( name,
     
     if ( "stats_for_paper.csv" %in% list.files() ) {
       res <<- read.csv( "stats_for_paper.csv",
-                                 stringsAsFactors = FALSE,
-                                 colClasses = rep("character", 3 ) )
+                        stringsAsFactors = FALSE,
+                        colClasses = rep("character", 3 ) )
       
       # if this entry is already in the results file, overwrite the
       #  old one
@@ -1048,11 +988,11 @@ update_result_csv = function( name,
     
   }  # end "for (.dir in dirs)"
   
-
+  
   if ( print == TRUE ) {
     View(res.overleaf)
   }
-
+  
 }
 
 

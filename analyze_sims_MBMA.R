@@ -80,23 +80,13 @@ file.info("agg.csv")$mtime
 
 
 dim(agg)  # will exceed number of scens because of multiple methods
-#expect_equal( 84, nuni(agg$scen.name) )
+expect_equal( 90, nuni(agg$scen.name) )
 
 # prettify variable names
 agg = wrangle_agg_local(agg)
 
 # look at number of actual sim reps
 table(agg$sim.reps.actual)
-
-# temporary if checking on sim results in real time:
-#  exclude scens with too few reps
-#agg = agg %>% filter(sim.reps.actual >= 1500)
-
-
-
-# TEMP: REMOVE SCENS WITH NO CONFOUNDED STUDIES OR WITH HACKING
-# agg = agg %>% filter(prob.conf > 0 & prob.hacked == 0 &
-#                        hack == "affirm")
 
 
 # ~~ List variable names -------------------------
@@ -109,37 +99,22 @@ init_var_names()
 # BEST AND WORST PERFORMANCE IN CORRECTLY-SPECIFIED SCENS -------------------------
 
 # scens where RTMA is correctly specified, but all other methods aren't
-as.data.frame( agg %>% filter( hack != "affirm2" ) %>%
-                 filter( !( method %in% c("rtma-adj-pmean", "rtma-adj-pmed") ) ) %>%
+as.data.frame( agg %>% 
                  group_by(method) %>%
                  summarise( min(MhatBias),
                             median(MhatBias),
                             max(MhatBias),
                             min(MhatCover),
-                            median(MhatCover)) )
+                            median(MhatCover),
+                            max(MhatWidth)) )
 
-#bm
-#@why is RTMA sometimes so downward-biased? I assume that's a case with very small sample size?
-# why isn't  SAPB more biased here?
-
-# unconfounded scens only
-# scens where RTMA is correctly specified, but all other methods aren't
-as.data.frame( agg %>% filter( hack != "affirm2" & prob.conf == 0 ) %>%
-                 filter( !( method %in% c("rtma-adj-pmean", "rtma-adj-pmed") ) ) %>%
-                 group_by(method) %>%
-                 summarise( min(MhatBias),
-                            median(MhatBias),
-                            max(MhatBias),
-                            min(MhatCover),
-                            median(MhatCover)) )
 
 # ******** PLOTS (BIG AND NOT PRETTIFIED) -------------------------
 
 Ynames = rev(MhatYNames)
 
 # alternatively, run just a subset:
-Ynames = c("MhatWidth", "MhatCover", "MhatBias",
-           "MhatEstFail")
+Ynames = c("MhatWidth", "MhatCover", "MhatBias")
 
 # to help decide which vars to include in plot:
 param.vars.manip2
@@ -152,101 +127,92 @@ param.vars.manip2
 #   "jeffreys-var", "mle-sd", "csm-mle-sd", "mle-var", "2psm-csm-dataset", 
 #   "prereg-naive", "ltn-mle-sd")
 ( all.methods = unique(agg$method) )
-toDrop = c("rtma-adj-MhatB-pmed",
-           "rtma-adj-muB-pmed",
-           "rtma-adj-MhatB-pmean",
-           'rtma-adj-muB-pmean')
-#toDrop = NULL
+# toDrop = c("rtma-adj-MhatB-pmed",
+#            "rtma-adj-muB-pmed",
+#            "rtma-adj-MhatB-pmean",
+#            'rtma-adj-muB-pmean')
+toDrop = NULL
 method.keepers = all.methods[ !all.methods %in% toDrop ]
 
 
-# for each hacking method and Mu, make facetted plotly
+# make facetted plotly
 
-
-# BM: Now that there's hacking, need to adjust this to go over prob.hack and hack type, I think?
-
-for ( .hack in unique(agg$hack) ) {
+for ( .t2a in unique(agg$t2a) ) {
   
-  for ( .t2a in unique(agg$t2a) ) {
+  # # test only
+  # .hack = "affirm"
+  # .t2a = 0.25
+  
+  cat( paste("\n\n -------- STARTING t2a=", .t2a) )
+  
+  aggp = agg %>% filter(method %in% method.keepers &
+                          t2a == .t2a)
+  # to label the plots
+  prefix = paste( "2022-7-23 sims; ",
+                  "t2a=", .t2a,
+                  sep = "")
+  
+  
+  # temporarily set wd
+  # results.dir.temp = paste(results.dir,
+  #                          "/Big unprettified plots/",
+  #                          .Mu,
+  #                          "/hack=",
+  #                          .hack,
+  #                          sep = "")
+  
+  results.dir.temp = paste(results.dir,
+                           "/Big unprettified plots",
+                           sep = "")
+  
+  
+  # set facetting variables for plots
+  aggp$tempFacetVar1 = paste( "muB=", aggp$muB,
+                              sep = "")
+  
+  aggp$tempFacetVar2 = as.factor( paste( "eta=", aggp$eta,
+                                         sep = "") )
+  levels(aggp$tempFacetVar2) = c("eta=1", "eta=5", "eta=10")
+  # force factor ordering
+  table(aggp$tempFacetVar2)
+  
+  
+  for ( Yname in Ynames) {
     
-    # # test only
-    # .hack = "affirm"
-    # .t2a = 0.04
+    # to run "manually"
+    #Yname = "MhatBias"
+    #Yname = "MhatCover"
     
-    cat( paste("\n\n -------- STARTING t2a=", .t2a, ", hack=", .hack, sep = "") )
+    y.breaks = NULL
+    if ( Yname == "MhatBias") y.breaks = round( seq(-0.6, 0.7, 0.1), 2)
+    if ( Yname == "MhatWidth") y.breaks = seq(0, 2, 0.2)
     
-    aggp = agg %>% filter(method %in% method.keepers &
-                            t2a == .t2a &
-                            hack == .hack)
-    # to label the plots
-    prefix = paste( "2022-7-5 sims; ",
-                    "t2a=", .t2a,
-                    "; hack=", .hack, 
-                    sep = "")
-    
-    
-    # temporarily set wd
-    # results.dir.temp = paste(results.dir,
-    #                          "/Big unprettified plots/",
-    #                          .Mu,
-    #                          "/hack=",
-    #                          .hack,
-    #                          sep = "")
-    
-    results.dir.temp = paste(results.dir,
-                             "/Big unprettified plots",
-                             sep = "")
+    p  = quick_5var_agg_plot(.Xname = "k.pub.nonaffirm",
+                             .Yname = Yname,
+                             .colorVarName = "method",
+                             .facetVar1Name = "tempFacetVar1",
+                             .facetVar2Name = "tempFacetVar2",
+                             .dat = aggp,
+                             .ggtitle = prefix,
+                             .y.breaks = y.breaks,
+                             .writePlot = FALSE,
+                             .results.dir = results.dir.temp)
     
     
-    # set facetting variables for plots
-    aggp$tempFacetVar1 = paste( "prob.hack=", aggp$prob.hacked,
-                                sep = "")
+    pl = ggplotly(p)
     
-    aggp$tempFacetVar2 = paste( "prob.conf=", aggp$prob.conf,
-                                "; eta=", aggp$eta,
-                                #"; t2a=", aggp$t2a,
-                                sep = "")
-    table(aggp$tempFacetVar2)
-    
-    
-    for ( Yname in Ynames) {
-      
-      # to run "manually"
-      #Yname = "MhatBias"
-      #Yname = "MhatCover"
-      
-      y.breaks = NULL
-      if ( Yname == "MhatBias") y.breaks = seq(-0.5, 1, 0.1)
-      if ( Yname == "MhatWidth") y.breaks = seq(0, 10, 0.5)
-      
-      p  = quick_5var_agg_plot(.Xname = "k.pub.nonaffirm",
-                               .Yname = Yname,
-                               .colorVarName = "method",
-                               .facetVar1Name = "tempFacetVar1",
-                               .facetVar2Name = "tempFacetVar2",
-                               .dat = aggp,
-                               .ggtitle = prefix,
-                               .y.breaks = y.breaks,
-                               .writePlot = FALSE,
-                               .results.dir = results.dir.temp)
-      
-      
-      pl = ggplotly(p)
-      
-      # in filename, mark the most important plots with asterisk
-      if ( Yname %in% c("MhatBias", "MhatCover", "MhatWidth") ){
-        new.prefix = paste("*", prefix, sep = "")
-      } else {
-        new.prefix = prefix
-      }
-      
-      # how to save a plotly as html
-      # https://www.biostars.org/p/458325/
-      setwd(results.dir.temp)
-      string = paste(new.prefix, Yname, "plotly.html", sep="_")
-      htmlwidgets::saveWidget(pl, string)
-      
+    # in filename, mark the most important plots with asterisk
+    if ( Yname %in% c("MhatBias", "MhatCover", "MhatWidth") ){
+      new.prefix = paste("*", prefix, sep = "")
+    } else {
+      new.prefix = prefix
     }
+    
+    # how to save a plotly as html
+    # https://www.biostars.org/p/458325/
+    setwd(results.dir.temp)
+    string = paste(new.prefix, Yname, "plotly.html", sep="_")
+    htmlwidgets::saveWidget(pl, string)
     
   }
   
@@ -254,19 +220,12 @@ for ( .hack in unique(agg$hack) ) {
 
 
 
-# temp: look at RTMA efficiency
-agg %>% filter(eta == 1,
-               prob.hacked == 0,
-               #t2a == 0.04,
-               method == "rtma-adj-MhatB-max-lp-iterate") %>%
-  #select( param.vars.manip, Ynames) %>% 
-  select( t2a, k.pub.nonaffirm, Ynames) %>% 
-  mutate_if(is.numeric, function(x) round(x,2))
-
 
 # ******** PLOTS (SIMPLE AND PRETTY FOR MAIN TEXT) -------------------------
 
-
+#bm: Remaining 6 ones keep failing -- is it the missing MhatB again?
+#  Then re-stitch.
+#  then edit sim_plot_multiple_outcomes below :)
 
 # for each hack type, arrange plots so each facet row is an outcome
 ( all.methods = unique(agg$method.pretty) )
@@ -278,8 +237,7 @@ agg %>% filter(eta == 1,
 YnamesMain = c("MhatBias", "MhatCover", "MhatWidth")
 
 # outcomes to show in supplement figures
-YnamesSupp = c("MhatBias", "MhatCover", "MhatWidth",
-               "MhatTestReject")
+YnamesSupp = c("MhatBias", "MhatCover", "MhatWidth")
 
 # this dataset will be one full-page figure in main text or Supp depending on hack type
 # by default, these write only to Overleaf dir

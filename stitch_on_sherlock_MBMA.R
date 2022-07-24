@@ -100,79 +100,14 @@ s = s %>% filter(!is.na(scen.name))
 
 # ~ Write stitched.csv ---------------------------
 
-# setwd(.results.stitched.write.path)
-# fwrite(s, .stitch.file.name)
-# 
-# # also make a zipped version
-# string = paste("zip -m stitched.zip", .stitch.file.name)
-# system(string)
+setwd(.results.stitched.write.path)
+fwrite(s, .stitch.file.name)
+
+# also make a zipped version
+string = paste("zip -m stitched.zip", .stitch.file.name)
+system(string)
 
 
-# ~ Optional: Quick Summary and Look for Failed Iterates ---------------------------
-
-t = s %>% group_by(scen.name, k.pub.nonaffirm, Mu,
-                   t2a, t2w, 
-                   true.sei.expr,
-                   method) %>%
-  #filter( !( method %in% "jeffreys-mcmc-max-lp-iterate" ) ) %>%
-  # filter( grepl("jeffreys-mcmc", method) ) %>%
-  summarise( reps = n(),
-             MhatBias = meanNA(Mhat - Mu),
-             MhatCover = meanNA(MLo < Mu & MHi > Mu),
-             MhatWidth = meanNA(MHi - MLo),
-             # MLo = meanNA(MLo),
-             # MHi = meanNA(MHi),
-             Shat = meanNA(Shat),
-             MhatNA = mean(is.na(Mhat))
-  #            MhatRhatGt1.05 = mean(MhatRhat>1.05),
-  # MhatRhatGt1.02 = mean(MhatRhat>1.02)
-  ) %>%
-  #filter(reps > 1000) %>%
-    mutate_if(is.numeric, function(x) round(x,2))
-
-as.data.frame(t)
-
-
-# iterates with small Rhat
-t = s %>% group_by(scen.name, k.pub.nonaffirm, Mu,
-                   t2a, t2w, 
-                   true.sei.expr,
-                   method) %>%
-  filter( method == "jeffreys-mcmc-max-lp-iterate" ) %>% &
-            MhatRhat < 1.02) %>%
-  # filter( grepl("jeffreys-mcmc", method) ) %>%
-  summarise( reps = n(),
-             MhatBias = meanNA(Mhat - Mu),
-             MhatCover = meanNA(MLo < Mu & MHi > Mu),
-             MhatWidth = meanNA(MHi - MLo),
-             # MLo = meanNA(MLo),
-             # MHi = meanNA(MHi),
-             # Shat = meanNA(Shat),
-             MhatNA = mean(is.na(Mhat)) ) %>%
-  #filter(reps > 1000) %>%
-  mutate_if(is.numeric, function(x) round(x,2))
-
-
-as.data.frame(t)
-
-
-# max-lp iterate 
-t = s %>% group_by(scen.name, k.pub.nonaffirm, Mu, t2a, t2w, method) %>%
-  filter( method == "jeffreys-mcmc-pmed" &
-            MhatRhat < 1.01) %>%
-  summarise( reps = n(),
-             MhatMn = meanNA(Mhat),
-             MhatCover = meanNA(MLo < Mu & MHi > Mu),
-             MhatWidth = meanNA(MHi - MLo),
-             # MLo = meanNA(MLo),
-             # MHi = meanNA(MHi),
-             # Shat = meanNA(Shat),
-             MhatNA = mean(is.na(Mhat)) ) %>%
-  #filter(reps > 1000) %>%
-  mutate_if(is.numeric, function(x) round(x,2))
-
-
-as.data.frame(t)
 
 
 # MAKE AGG DATA ----------------------------------------------
@@ -190,24 +125,21 @@ agg = make_agg_data(s)
 setwd(.results.stitched.write.path)
 fwrite(agg, "agg.csv")
 
+
+table(agg$method.pretty)
+
 cat("\n\n nrow(agg) =", nrow(agg))
 cat("\n nuni(agg$scen.name) =", nuni(agg$scen.name) )
 
-# OPTIONAL: shorter version of agg that's nicer to look at
-agg.short = agg %>% select(prob.hacked, prob.conf, method, Mhat, MhatBias, MhatCover, MhatWidth,
-                           #MhatEstFail, MhatCIFail,
-                           sancheck.dp.k.nonaffirm.unhacked, sancheck.dp.k.nonaffirm.hacked) %>%
-  filter( !( method %in% c("rtma-adj-pmed", "rtma-adj-pmean") ) ) %>%
-  mutate_if(is.numeric, function(x) round(x,2))
-  
-setwd(.results.stitched.write.path)
-fwrite(agg.short, "agg_short.csv")
-
-
-# # OPTIONAL: agg that keeps only iterates with very low Rhat
-# agg2 = make_agg_data( s %>% filter(MhatRhat<1.02 & ShatRhat<1.02))
-# fwrite(agg2, "agg_RhatsLt1.02.csv")
-
+# # OPTIONAL: shorter version of agg that's nicer to look at
+# agg.short = agg %>% select(prob.hacked, prob.conf, method, Mhat, MhatBias, MhatCover, MhatWidth,
+#                            #MhatEstFail, MhatCIFail,
+#                            sancheck.dp.k.nonaffirm.unhacked, sancheck.dp.k.nonaffirm.hacked) %>%
+#   filter( !( method %in% c("rtma-adj-pmed", "rtma-adj-pmean") ) ) %>%
+#   mutate_if(is.numeric, function(x) round(x,2))
+#   
+# setwd(.results.stitched.write.path)
+# fwrite(agg.short, "agg_short.csv")
 
 
 
@@ -243,7 +175,7 @@ source("analyze_sims_helper_MBMA.R")
 missed.nums = sbatch_not_run( "/home/groups/manishad/MBMA/long_results",
                               "/home/groups/manishad/MBMA/long_results",
                               .name.prefix = "long",
-                              .max.sbatch.num = 1680)
+                              .max.sbatch.num = 90)
 
 setwd( paste(path, "/sbatch_files", sep="") )
 for (i in missed.nums) {

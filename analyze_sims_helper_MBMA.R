@@ -301,12 +301,10 @@ wrangle_agg_local = function(agg) {
   # label methods more intelligently for use in plots
   agg$method.pretty = NA
   agg$method.pretty[ agg$method == c("naive") ] = "Uncorrected"
-  agg$method.pretty[ agg$method == c("gold-std") ] = "Gold standard"
-  agg$method.pretty[ agg$method == c("maon") ] = "MAN"
+  agg$method.pretty[ agg$method == c("maon-adj-MhatB") ] = "MAN adjusted"
   agg$method.pretty[ agg$method == c("2psm") ] = "SM"
-  agg$method.pretty[ agg$method == c("2psm-csm-dataset") ] = "SMKH" # "known hacking"
-  agg$method.pretty[ agg$method == c("prereg-naive") ] = "Unhacked only"
-  agg$method.pretty[ agg$method %in% c("jeffreys-mcmc-max-lp-iterate") ] = "RTMA"
+  agg$method.pretty[ agg$method == c("mbma-MhatB") ] = "MBMA" 
+  agg$method.pretty[ agg$method == c("mbma-MhatB") ] = "MBMA (true t2)"
   table(agg$method, agg$method.pretty)
 
   

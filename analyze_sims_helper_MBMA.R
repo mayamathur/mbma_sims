@@ -9,13 +9,11 @@
 # averagefn: fn to use when aggregating results across scenarios
 # expected.sim.reps: only used for sanity checks
 make_agg_data = function( .s,
-                          .averagefn = "median",
                           badCoverageCutoff = 0.85,
                           expected.sim.reps = NA ){
   
   # # TEST ONLY
   # .s = s
-  # .averagefn = "median",
   # badCoverageCutoff = 0.85,
   # expected.sim.reps = NA
   
@@ -247,10 +245,6 @@ make_agg_data = function( .s,
   
   # calculate scenario-level averages, but keep dataset at the rep level
   #  for now to facilitate sanity checks
-  # IMPORTANT: this uses meanNA regardless of the passed .avgfun 
-  #  because right now we are only aggregating WITHIN scens
-  #  so we should never use median 
-  
   # don't try to drop vars that don't exist
   toDrop = toDrop[ toDrop %in% names(s2) ]
   
@@ -302,8 +296,8 @@ wrangle_agg_local = function(agg) {
   agg$method.pretty = NA
   agg$method.pretty[ agg$method == c("naive") ] = "Uncorrected"
   agg$method.pretty[ agg$method == c("maon-adj-MhatB") ] = "MAN adjusted"
-  agg$method.pretty[ agg$method == c("2psm") ] = "SM"
-  agg$method.pretty[ agg$method == c("mbma-MhatB") ] = "MBMA" 
+  agg$method.pretty[ agg$method == c("2psm") ] = "Selection model"
+  agg$method.pretty[ agg$method == c("mbma-MhatB") ] = "Proposed" 
   agg$method.pretty[ agg$method == c("mbma-Mhat-true-t2") ] = "MBMA (true t2)"
   table(agg$method, agg$method.pretty)
   
@@ -482,8 +476,8 @@ sim_plot_multiple_outcomes = function( .t2a,  # subset to be analyzed
   
   # force ordering of methods
   correct.order = c("Uncorrected",
-                    "MBMA",
-                    "SM")
+                    "Proposed",
+                    "Selection model")
   
   
   .dat$method.pretty = factor(.dat$method.pretty, levels = rev(correct.order))
@@ -500,9 +494,9 @@ sim_plot_multiple_outcomes = function( .t2a,  # subset to be analyzed
     
     # set color palette 
     .colors = c(#MAN = "#ff9900",
-      MBMA = "red",
+      Proposed = "red",
       #`Unhacked only` = "#3399ff",
-      SM = "#00cc00",
+      `Selection model` = "#00cc00",
       Uncorrected = "black")
     
     myColorScale = scale_colour_manual(values = .colors)
@@ -601,10 +595,10 @@ sim_plot_multiple_outcomes = function( .t2a,  # subset to be analyzed
     if ( is.null(.y.breaks) ) {
       # set default breaks
       if ( grepl(pattern = "Cover", .Yname) ){
-        y.breaks = seq(0, 1, .1)
+        y.breaks = seq(0, 1, .2)
         
       } else if ( grepl(pattern = "Bias", .Yname) ){
-        y.breaks = seq(-0.1, 0.5, .1)
+        y.breaks = seq(-0.2, 0.6, .2)
         
       } else if ( grepl(pattern = "Width", .Yname) ){
         y.breaks = seq(0, 1, .2)
@@ -1005,75 +999,6 @@ quick_pval = function( est, var ) {
   2 * ( 1 - pnorm( abs( est / sqrt(var) ) ) )
 }
 
-
-# # STRAIGHT FROM MRM:
-# # summarize performance metrics given a dataset (dat) that is already scenario-aggregated
-# #  looks for all variables with "Bias" or "Cover" in their names and takes their means
-# # description: description of the row to make a nice table
-# # selectVars: "Phat", "Diff" (by default looks for a global variable by this name)
-# my_summarise = function(dat,
-#                         description = NA,
-#                         .selectVars = selectVars,
-#                         badCoverageCutoff = 0.85,
-#                         badWidthCutoff = 0.90,
-#                         averagefn = "mean"
-# ){
-#   
-#   # variables whose average should be taken
-#   meanVars = c( namesWith(pattern = "Bias", dat = dat), 
-#                 namesWith(pattern = "AbsErr", dat = dat),
-#                 namesWith(pattern = "Cover", dat = dat),
-#                 namesWith(pattern = "Width", dat = dat) )
-#   
-#   if (.selectVars == "Phat") meanVars = meanVars[ !grepl(pattern = "Diff", x = meanVars) ]
-#   
-#   if (.selectVars == "Diff") meanVars = meanVars[ !grepl(pattern = "Phat", x = meanVars) ]
-#   
-#   
-#   if (averagefn == "mean") avgfun = function(x) meanNA(x)
-#   if (averagefn == "median") avgfun = function(x) medNA(x)
-#   if (averagefn == "median.pctiles") avgfun = function(x) medNA_pctiles(x)
-#   
-#   # make a one-row summary
-#   tab = dat %>% 
-#     summarise_at( .vars = meanVars, 
-#                   function(x) avgfun(x) )
-#   
-#   # proportion of SCENARIOS with bad MEAN coverage
-#   tab = tab %>% add_column(BadPhatCover = mean(dat$CoverPhat < badCoverageCutoff),
-#                            BadDiffCover = mean(dat$CoverDiff < badCoverageCutoff))
-#   if (.selectVars == "Phat") tab = tab %>% select(-BadDiffCover)
-#   if (.selectVars == "Diff") tab = tab %>% select(-BadPhatCover)
-#   
-#   # proportion of SCENARIOS with bad median CI width
-#   tab = tab %>% add_column(BadPhatWidth = mean(dat$PhatCIWidth > badWidthCutoff),
-#                            BadDiffWidth = mean(dat$DiffCIWidth > badWidthCutoff) )
-#   if (.selectVars == "Phat") tab = tab %>% select(-BadDiffWidth)
-#   if (.selectVars == "Diff") tab = tab %>% select(-BadPhatWidth)
-#   
-#   # only round selected columns if we have strings
-#   #  (e.g., median with percentiles)
-#   if ( averagefn == "median.pctiles" ){
-#     
-#     if (.selectVars == "Phat"){
-#       tab$BadPhatCover = round(tab$BadPhatCover, 2)
-#       tab$BadPhatWidth = round(tab$BadPhatWidth, 2)
-#     }
-#     
-#     if (.selectVars == "Diff"){
-#       tab$BadDiffCover = round(tab$BadDiffCover, 2)
-#       tab$BadDiffWidth = round(tab$BadDiffWidth, 2)
-#     } 
-#     
-#   } else {  # otherwise round all columns
-#     tab = round( tab, 2 )
-#   }
-#   
-#   tab = tab %>% add_column(n.scens = nrow(dat), .before = 1 )
-#   
-#   if ( !is.na(description) ) tab = tab %>% add_column(Scenarios = description, .before = 1)
-#   return(tab)
-# }
 
 
 

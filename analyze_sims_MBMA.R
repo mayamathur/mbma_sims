@@ -58,6 +58,11 @@ results.dir = str_replace( string = here(),
 
 overleaf.dir.figs = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/figures/sims"
 
+# for stats_for_paper.csv
+# same dir as for applied examples so that they'll write to single file
+overleaf.dir.nums = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/R_objects"
+
+
 # # alternative for running new simulations
 # data.dir = str_replace( string = here(),
 #                         pattern = "Code \\(git\\)",
@@ -85,9 +90,17 @@ expect_equal( 90, nuni(agg$scen.name) )
 
 # prettify variable names
 agg = wrangle_agg_local(agg)
+table(agg$method.pretty)
 
 # look at number of actual sim reps
 table(agg$sim.reps.actual)
+
+
+# one-off for paper
+update_result_csv( name = "n scens",
+                   value = nuni(agg$scen.name),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
 
 
 # ~~ List variable names -------------------------
@@ -99,18 +112,35 @@ init_var_names()
 
 # BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
 
-# scens where RTMA is correctly specified, but all other methods aren't
-as.data.frame( agg %>% 
-                 group_by(method) %>%
-                 summarise( min(MhatBias),
-                            median(MhatBias),
-                            max(MhatBias),
-                            min(MhatCover),
-                            median(MhatCover),
-                            max(MhatWidth)) )
+t = agg %>%
+  filter( method %in% c("naive", "mbma-MhatB", "2psm") ) %>%
+  group_by(method) %>%
+  summarise(BiasMin = min(MhatBias),
+            BiasMd = median(MhatBias),
+            BiasMax = max(MhatBias),
+            
+            #*express coverage as percent
+            CoverMin = 100*min(MhatCover),
+            CoverMd = 100*median(MhatCover),
+            
+            WidthMd = median(MhatWidth),
+            WidthMin = min(MhatWidth),
+            WidthMax = max(MhatWidth)) 
+
+t
+
+# go through each outcome column in table (e.g., BiasMin) and write
+#  results for each method to csv
+for ( .col in names(t)[ 2 : ncol(t) ] ) {
+  
+  update_result_csv( name = paste( t$method, .col, sep = " " ),
+                     value = t[[.col]],
+                     .results.dir = results.dir,
+                     .overleaf.dir = overleaf.dir.nums )
+}
 
 
-#bm: Make one-off stats for paper about the above :)
+
 
 # ******** PLOTS (BIG AND NOT PRETTIFIED) -------------------------
 

@@ -307,7 +307,7 @@ doParallel.seconds = system.time({
                     rho = p$rho,
                     
                     eta = p$eta,
-                    
+                     
                     muB = p$muB,
                     sig2B = p$sig2B,
                     prob.conf = p$prob.conf,

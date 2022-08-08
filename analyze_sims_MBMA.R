@@ -1,4 +1,8 @@
 
+# Note: This script shares a stats_for_paper.csv with the applied examples, so if you wr(), 
+#  you'll also need to rerun the applied examples.
+
+
 # PRELIMINARIES ----------------------------------------------------
 
 #rm(list=ls())
@@ -47,13 +51,13 @@ code.dir = here()
 
 data.dir = str_replace( string = here(),
                         pattern = "Code",
-                        replacement = "Results" )
+                        replacement = "Results/*2022-7-23 More scens for manuscript; add mbma-MhatB-true-t2" )
 
 
 
 results.dir = str_replace( string = here(),
                            pattern = "Code",
-                           replacement = "Results" )
+                           replacement = "Results/*2022-7-23 More scens for manuscript; add mbma-MhatB-true-t2" )
 
 
 overleaf.dir.figs = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/figures/sims"
@@ -65,9 +69,8 @@ overleaf.dir.nums = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-ana
 
 # # alternative for running new simulations
 # data.dir = str_replace( string = here(),
-#                         pattern = "Code \\(git\\)",
-#                         replacement = "Simulation results" )
-# 
+#                         pattern = "Code",
+#                         replacement = "Results2" )
 # results.dir = data.dir
 
 

@@ -23,7 +23,7 @@ rm( list = ls() )
 
 
 # are we running locally?
-run.local = FALSE
+run.local = TRUE
 
 # should we set scen params interactively on cluster?
 interactive.cluster.run = FALSE
@@ -189,29 +189,31 @@ if ( run.local == TRUE ) {
   
   
   # ~~ Set Local Sim Params -----------------------------
+  
+  # for testing selection on SEs
   scen.params = tidyr::expand_grid(
     
-    rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-true-t2 ; maon-adj-MhatB ; 2psm",
+    rep.methods = "naive ; mbma-MhatB ; mbma-muB",
     
     
     # args from sim_meta_2
     Nmax = 1,
     Mu = c(0.5),
-    t2a = c(0, 0.25^2, 0.5^2), 
+    t2a = c(0.25^2), 
     t2w = c(0),
     m = 50,
     
     hack = c("affirm"),  # but there will not be any hacking since prob.hacked is 0
     rho = c(0),
-    k.pub.nonaffirm = c(5, 10, 15, 30, 50),
+    k.pub.nonaffirm = c(100),
     prob.hacked = c(0),
     
-    eta = c(1, 5, 10),
+    eta = c(5),
     
     true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
     
     # confounding parameters
-    muB = log(1.5, 3),
+    muB = log(3),
     sig2B = 0.5,
     prob.conf = c(0.5), 
     
@@ -221,6 +223,41 @@ if ( run.local == TRUE ) {
     
     get.CIs = TRUE,
     run.optimx = FALSE )
+  
+  
+  # more scens
+  # scen.params = tidyr::expand_grid(
+  #   
+  #   rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-true-t2 ; maon-adj-MhatB ; 2psm",
+  #   
+  #   
+  #   # args from sim_meta_2
+  #   Nmax = 1,
+  #   Mu = c(0.5),
+  #   t2a = c(0, 0.25^2, 0.5^2), 
+  #   t2w = c(0),
+  #   m = 50,
+  #   
+  #   hack = c("affirm"),  # but there will not be any hacking since prob.hacked is 0
+  #   rho = c(0),
+  #   k.pub.nonaffirm = c(5, 10, 15, 30, 50),
+  #   prob.hacked = c(0),
+  #   
+  #   eta = c(1, 5, 10),
+  #   
+  #   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
+  #   
+  #   # confounding parameters
+  #   muB = log(1.5, 3),
+  #   sig2B = 0.5,
+  #   prob.conf = c(0.5), 
+  #   
+  #   # Stan control args - only relevant if running RTMA
+  #   stan.maxtreedepth = 25,
+  #   stan.adapt_delta = 0.995,
+  #   
+  #   get.CIs = TRUE,
+  #   run.optimx = FALSE )
   
   
   

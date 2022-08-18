@@ -2,7 +2,6 @@
 # ~ FNS FOR SUMMARIZING SIMULATION DATA ----------------------------------------------
 
 
-# taken from TNE 2022-2-27
 # fn for aggregating so we can look at different
 #  iterate-level filtering rules
 # .s: the iterate-level stitched data (not yet aggregated in any way)

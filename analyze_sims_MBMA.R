@@ -287,19 +287,3 @@ for ( i in 1:length(t2a.levels) ) {
 
  
 
-
-
-# # 2022-4-4: EFFECT OF SCEN PARAMS ON DATASETS -------------------------
-# 
-# param.vars.manip2 = drop_vec_elements(param.vars.manip, "method")
-# 
-# t = agg %>% group_by_at( param.vars.manip2 ) %>%
-#   # keep only scens in main text
-#   filter(Mu == 0.5 & true.sei.expr == "0.02 + rexp(n = 1, rate = 3)") %>%
-#   select( all_of( contains("sancheck") ) ) %>%
-#   mutate_if( is.numeric, function(x) round(x, 2) )
-# 
-# setwd(results.dir)
-# setwd("Sanity checks")
-# write.xlsx( as.data.frame(t), "table_sanchecks.xlsx")
-

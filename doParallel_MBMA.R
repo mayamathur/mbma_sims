@@ -193,7 +193,7 @@ if ( run.local == TRUE ) {
   # for testing selection on SEs
   scen.params = tidyr::expand_grid(
     
-    rep.methods = "naive ; mbma-MhatB ; mbma-muB ; 2psm",
+    rep.methods = "naive ; mbma-MhatB ; mbma-muB ; 2psm ; mbma-MhatB-gamma",
     
     
     # args from sim_meta_2
@@ -207,9 +207,10 @@ if ( run.local == TRUE ) {
     hack = "favor-gamma-ratio",
     rho = c(0),
     k.pub.nonaffirm = c(100),
-    prob.hacked = c(0), 
+    prob.hacked = c(1), 
     
-    eta = c(5),
+    eta = c(2),
+    gamma = c(2), # within-study selection ratio, only used when hack=favor-gamma-ratio
     
     true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
     
@@ -690,6 +691,7 @@ doParallel.seconds = system.time({
     }
     
     
+    rep.res
     
     # ~ New Methods ------------------------------
     
@@ -747,6 +749,56 @@ doParallel.seconds = system.time({
       
     }
     
+    rep.res
+    
+    
+    
+    # NEW: same as mbma-MhatB, but uses eta*gamma as selection ratio (hard coded for now)
+    if ( "mbma-MhatB-gamma" %in% all.methods ) {
+      
+      rep.res = run_method_safe(method.label = c("mbma-MhatB-gamma"),
+                                method.fn = function() {
+                                  
+                                  # from inside PublicationBias::corrected_meta;
+                                  #  only change is that we want affirm indicator to be that of the *confounded* estimates, not the adjusted ones
+                                  # weight for model
+                                  weights = rep( 1, length(dp$yi.adj.est) )
+                                  # weight based on the affirm indicator of the *confounded* estimates
+                                  weights[ dp$affirm == FALSE ] = p$eta * 3
+                                  
+                                  # initialize a dumb (unclustered and uncorrected) version of tau^2
+                                  # which is only used for constructing weights
+                                  meta.re = rma.uni( yi = dp$yi.adj.est,
+                                                     vi = dp$vi)
+                                  t2hat.naive = meta.re$tau2  #@ could subtract off the sig2B here, but would also need to account for some studies' being unconfounded
+                                  
+                                  
+                                  # fit weighted robust model
+                                  meta.robu = robu( yi.adj.est ~ 1,
+                                                    studynum = 1:nrow(dp),
+                                                    data = dp,
+                                                    userweights = weights / (vi + t2hat.naive),
+                                                    var.eff.size = vi,
+                                                    small = TRUE )
+                                  
+                                  # follow the same return structure as report_meta
+                                  list( stats = data.frame( Mhat = as.numeric(meta.robu$b.r),
+                                                            MLo = meta.robu$reg_table$CI.L,
+                                                            MHi = meta.robu$reg_table$CI.U,
+                                                            
+                                                            Shat = NA,
+                                                            SLo = NA,
+                                                            SHi = NA ) ) 
+                                },
+                                .rep.res = rep.res )
+      
+      cat("\n doParallel flag: Done mbma-MhatB-gamma if applicable")
+      
+    }
+    
+    rep.res
+    
+    
     # Benchmark: using MhatB but with TRUE tau^2
     if ( "mbma-MhatB-true-t2" %in% all.methods ) {
       
@@ -758,7 +810,7 @@ doParallel.seconds = system.time({
                                   # weight for model
                                   weights = rep( 1, length(dp$yi.adj.est) )
                                   # weight based on the affirm indicator of the *confounded* estimates
-                                  weights[ dp$affirm == FALSE ] = p$eta
+                                  weights[ dp$affirm == FALSE ] = p$eta 
                                   
                                   # fit weighted robust model
                                   meta.robu = robu( yi.adj.est ~ 1,

@@ -34,6 +34,8 @@ lapply( allPackages,
 
 
 
+#@2023-04-02: add mbma-MhatB-gamma to methods :)
+
 ### 2022-7-23 ###
 scen.params = tidyr::expand_grid(
   

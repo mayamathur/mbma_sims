@@ -210,7 +210,9 @@ if ( run.local == TRUE ) {
     prob.hacked = c(1), 
     
     eta = c(2),
-    gamma = c(2), # within-study selection ratio, only used when hack=favor-gamma-ratio
+    # within-study selection ratio; only used when hack=favor-gamma-ratio
+    # important: other hacking methods will IGNORE gamma because can't be directly specified
+    gamma = c(2), 
     
     true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
     
@@ -350,6 +352,7 @@ doParallel.seconds = system.time({
                     rho = p$rho,
                     
                     eta = p$eta,
+                    gamma = p$gamma,
                     
                     muB = p$muB,
                     sig2B = p$sig2B,
@@ -764,7 +767,9 @@ doParallel.seconds = system.time({
                                   # weight for model
                                   weights = rep( 1, length(dp$yi.adj.est) )
                                   # weight based on the affirm indicator of the *confounded* estimates
-                                  weights[ dp$affirm == FALSE ] = p$eta * 3
+                                  # **note this uses the empirical gamma from underlying data to accommodate hacking methods in which 
+                                  #  we don't specify the population gamma
+                                  weights[ dp$affirm == FALSE ] = p$eta * dp$gamma[1]
                                   
                                   # initialize a dumb (unclustered and uncorrected) version of tau^2
                                   # which is only used for constructing weights

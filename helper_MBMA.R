@@ -274,6 +274,7 @@ sim_meta_2 = function(Mu,
                       rho = 0,  # autocorrelation of muin's
                       hack, # mechanism of hacking for studies that DO hack (so not "no")
                       prob.hacked,
+                      gamma, # only used for favor-gamma-ratio
                       
                       # SAS arguments
                       eta = 1  # across-study SAS
@@ -528,7 +529,11 @@ sim_one_study_set = function(Nmax,  # max draws to try
                              Ci = 0,  # should this study set be confounded?
                              
                              # for correlated draws; see make_one_draw
-                             rho = 0
+                             rho = 0,
+                             
+                             # within-study selection ratio; only used when hack=favor-gamma-ratio
+                             # important: other hacking methods will IGNORE gamma because can't be directly specified
+                             gamma = 1
 ) {  
   
   
@@ -676,10 +681,6 @@ sim_one_study_set = function(Nmax,  # max draws to try
   }
   
   if ( hack %in% c("favor-gamma-ratio") ) {
-
-    # HARD-CODED WITHIN-STUDY SELECTION RATIO
-    gamma = 3
-    
     d = d %>% rowwise() %>%
       mutate( Fi.prob = ifelse(affirm == TRUE, 1, 1/gamma),
               Fi = rbinom(n = 1, size = 1, prob = Fi.prob) )

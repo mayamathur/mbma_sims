@@ -56,6 +56,7 @@ scen.params = tidyr::expand_grid(
   prob.hacked = c(0),
   
   eta = c(1, 5, 10),
+  gamma = 2,
   
   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
   

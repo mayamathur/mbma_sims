@@ -124,7 +124,7 @@ if (run.local == FALSE) {
       rep.methods = "naive ; 2psm ; sapb ; rtma",
       
       # args from sim_meta_2
-      Nmax = 1,
+      Nmax = 10,
       Mu = c(0.5),
       t2a = c(0.2^2),
       t2w = c(0.2^2),
@@ -197,16 +197,16 @@ if ( run.local == TRUE ) {
     
     
     # args from sim_meta_2
-    Nmax = 1, 
+    Nmax = 10, 
     Mu = c(0.5),
     t2a = c(0.25), 
     t2w = c(0.25),
     m = 50,
     
-    #hack = c("favor-lowest-p")
-    hack = "favor-gamma-ratio",
+    hack = c("favor-lowest-p"),
+    #hack = "favor-gamma-ratio",
     rho = c(0),
-    k.pub.nonaffirm = c(100),
+    k.pub.nonaffirm = c(30),
     prob.hacked = c(1), 
     
     eta = c(2),
@@ -272,7 +272,7 @@ if ( run.local == TRUE ) {
   scen.params$scen = 1:nrow(scen.params)
   
   
-  sim.reps = 1  # reps to run in this iterate
+  sim.reps = 100  # reps to run in this iterate
   
   # set the number of local cores
   registerDoParallel(cores=8)
@@ -769,7 +769,8 @@ doParallel.seconds = system.time({
                                   # weight based on the affirm indicator of the *confounded* estimates
                                   # **note this uses the empirical gamma from underlying data to accommodate hacking methods in which 
                                   #  we don't specify the population gamma
-                                  weights[ dp$affirm == FALSE ] = p$eta * dp$gamma[1]
+                                  EtaGammaAssumed = p$eta * dp$gamma[1]
+                                  weights[ dp$affirm == FALSE ] = EtaGammaAssumed
                                   
                                   # initialize a dumb (unclustered and uncorrected) version of tau^2
                                   # which is only used for constructing weights
@@ -793,7 +794,9 @@ doParallel.seconds = system.time({
                                                             
                                                             Shat = NA,
                                                             SLo = NA,
-                                                            SHi = NA ) ) 
+                                                            SHi = NA,
+                                                            
+                                                            EtaGammaAssumed = EtaGammaAssumed) ) 
                                 },
                                 .rep.res = rep.res )
       
@@ -1181,17 +1184,17 @@ doParallel.seconds = system.time({
 
 
 
-# dim(rs)
-# # quick look
-# rs %>% mutate(MhatWidth = MHi - MLo,
-#               MhatCover = as.numeric( MHi > Mu & MLo < Mu ) ) %>%
-#   dplyr::select(method, Mhat, MhatWidth, MhatCover,
-#                 sancheck.MhatB, sancheck.EBsti) %>%
-#   
-#   group_by(method) %>%
-#   summarise_if(is.numeric, function(x) round( meanNA(x), 2 ) )   
-# 
-# any(is.na(rs$sancheck.MhatB))
+dim(rs)
+# quick look
+rs %>% mutate(MhatWidth = MHi - MLo,
+              MhatCover = as.numeric( MHi > Mu & MLo < Mu ) ) %>%
+  dplyr::select(method, Mhat, MhatWidth, MhatCover,EtaGammaHat,EtaGammaAssumed,
+                sancheck.MhatB, sancheck.EBsti) %>%
+
+  group_by(method) %>%
+  summarise_if(is.numeric, function(x) round( meanNA(x), 2 ) )
+
+any(is.na(rs$sancheck.MhatB))
 
 
 

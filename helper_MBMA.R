@@ -332,19 +332,28 @@ sim_meta_2 = function(Mu,
     newRows = newRows %>% add_column( .after = 1,
                                       study.draw )
     
+    
+  
     # apply SAS to the study's favored draw only
     #@REMEMBER THAT IF HACK TYPE != AFFIRM, Di ALREADY INCLUDES SOME SAS
     # ULTIMATELY SHOULD PROBABLY HAVE SIM_ONE_STUDY SET ONLY APPLY SWS, AND THEN HERE APPLY SAS
     #  BY BOTH THE INVESTIGATORS AND THE PUBLICATION PROCESS
+    # flag2: implement SAS favoring large effect sizes here
+    # newRows$Di.across.prob = rep(0, nrow(newRows))  # default to zero to avoid applying SAS to non-favored draws
+    # newRows$Di.across.prob[ newRows$Di == 1 & newRows$affirm == TRUE ] = 1
+    # newRows$Di.across.prob[ newRows$Di == 1 & newRows$affirm == FALSE ] = 1/eta
+    # newRows$Di.across = rbinom( n=nrow(newRows), size = 1, prob = newRows$Di.across.prob )
+    
+    #@new: switch to using Fi within studies (only)
     newRows$Di.across.prob = rep(0, nrow(newRows))  # default to zero to avoid applying SAS to non-favored draws
-    newRows$Di.across.prob[ newRows$Di == 1 & newRows$affirm == TRUE ] = 1
-    newRows$Di.across.prob[ newRows$Di == 1 & newRows$affirm == FALSE ] = 1/eta
+    newRows$Di.across.prob[ newRows$Fi == 1 & newRows$affirm == TRUE ] = 1
+    newRows$Di.across.prob[ newRows$Fi == 1 & newRows$affirm == FALSE ] = 1/eta
     newRows$Di.across = rbinom( n=nrow(newRows), size = 1, prob = newRows$Di.across.prob )
     
     if ( i == 1 ) .dat = newRows else .dat = rbind( .dat, newRows )
     
     i = i + 1
-    k.pub.nonaffirm.achieved = sum( .dat$affirm == FALSE & .dat$Di == 1 & .dat$Di.across == 1 ) 
+    k.pub.nonaffirm.achieved = sum( .dat$affirm == FALSE & .dat$Fi == 1 & .dat$Di.across == 1 ) 
     
   }  # end "while( k.pub.nonaffirm.achieved < k.pub.nonaffirm )"
   
@@ -352,6 +361,15 @@ sim_meta_2 = function(Mu,
   # add more info to dataset
   .dat$k.underlying = length(unique(.dat$study))
   .dat$k.nonaffirm.underlying = length( unique( .dat$study[ .dat$affirm == FALSE ] ) )
+  
+  # record overall within-study eta (called gamma in SAPH)
+  # can't do this within studies because either the numerator or denominator will be zero
+  #  (b/c only 1 favored draw per study)
+  #@new
+  #@all hack types need to return Fi indicator
+  #@BEWARE: need to calculate overall gamma BEFORE restricting to studies 
+  .dat$gamma = conditional_prob(.dat$Fi == 1, .dat$affirm == 1) / conditional_prob(.dat$Fi == 1, .dat$affirm == 0 )
+  
   
 
   # return only draws that are both favored AND published
@@ -361,6 +379,7 @@ sim_meta_2 = function(Mu,
     .dat = .dat[ .dat$Di == 1 & .dat$Di.across == 1, ]
   }
   
+  #@: NEED TO RETURN MEAN(.DAT$GAMMA) FROM *BEFORE* YOU SUBSET TO ONLY PUBLISHED STUDIES!
   return(.dat)
 }
 
@@ -484,6 +503,10 @@ sim_meta_2 = function(Mu,
 # - "favor-best-affirm-wch" (worst-case hacking): Always makes Nmax draws. If you get any affirmatives,
 #    publish the one with the lowest p-value. If you don't get any affirmatives, don't publish anything.
 
+# - "favor-lowest-p": Always make Nmax draws. Favor the one with lowest p-value. (Collect data on P(Fin* = 1 | Ain*=1) / P(Fin* = 1 | Ain*=0), the within-study contribution to eta.)
+
+# - "favor-gamma-ratio" (staackable hacking): Always make Nmax draws. Decide whether to favor each draw based on within-study selection ratio, gamma. As such, studies can have multiple favored draws. (2PSM will be correctly specificed, I think also subject to constraints on heterogeneity - see SAPH).
+
 # NOTE: If you add args here, need to update quick_sim as well
 
 # If Nmax is small, rhoEmp (empirical autocorrelation of muin's) will be smaller
@@ -517,6 +540,9 @@ sim_one_study_set = function(Nmax,  # max draws to try
   # t2w = .5
   # se = 1
   # hack = "favor-best-affirm-wch"
+  # muB = 0
+  # sig2B = 0
+  # Ci = 0  # should this study set be confounded?
   # rho=0
   
   # ~~ Mean (potentially confounded) for this study set ----
@@ -526,6 +552,7 @@ sim_one_study_set = function(Nmax,  # max draws to try
   if ( Ci == 1 ) Bi = rnorm( mean = muB, sd = sqrt(sig2B), n = 1 )
   
   # doesn't have t2w because that applies to results within this study set
+  #@flag1: update this to allow other distributions besides rnorm
   mui = Mu + Bi + rnorm(mean = 0,
                         sd = sqrt(t2a),
                         n = 1)
@@ -569,10 +596,10 @@ sim_one_study_set = function(Nmax,  # max draws to try
       stop = (newRow$pval < 0.05)
     } else if ( hack %in% c("affirm", "affirm2") ) {
       stop = (newRow$pval < 0.05 & newRow$yi > 0)
-    } else if ( hack %in% c("no", "favor-best-affirm-wch") ) {
+    } else if ( hack %in% c("no", "favor-best-affirm-wch", "favor-lowest-p", "favor-gamma-ratio") ) {
       # if this study set is unhacked, then stopping criterion
       #  is just whether we've reached Nmax draws
-      # and for favor-best-affirm-wch, we always do Nmax draws so 
+      # and for favor-best-affirm-wch or favor-lowest-p, we always do Nmax draws so 
       #  we can pick the smallest p-value
       stop = (N == Nmax)
     } else {
@@ -614,6 +641,7 @@ sim_one_study_set = function(Nmax,  # max draws to try
   if ( hack == "signif" ) d$Di = (d$signif == TRUE)
   if (hack == "affirm") d$Di = (d$affirm == TRUE)
   
+  # OLD - still uses Di as within-study indicator
   # if no hacking or affirmative hacking without file drawer,
   #   assume only LAST draw is published,
   #   which could be affirm or nonaffirm
@@ -622,6 +650,7 @@ sim_one_study_set = function(Nmax,  # max draws to try
     d$Di[ length(d$Di) ] = 1
   }
   
+  # OLD - still uses Di as within-study indicator
   # for favor-best-affirm-wch, favor the one with the lowest p-value
   if ( hack %in% c("favor-best-affirm-wch") ) {
     d$Di = 0
@@ -635,12 +664,61 @@ sim_one_study_set = function(Nmax,  # max draws to try
     #View(d%>%select(Di,affirm,pval,yi))
   }
   
+  
+  # NEW - using Fi as within-study indicator
+  # for favor-best-affirm-wch, favor the one with the lowest p-value
+  if ( hack %in% c("favor-lowest-p") ) {
+
+    #@HERE using Fi instead of Di because this mechanism cleanly separates the two indicators
+    d$Fi = 0
+    best.pval = min(d$pval)
+    d$Fi[ d$pval == best.pval ] = 1
+  }
+  
+  if ( hack %in% c("favor-gamma-ratio") ) {
+
+    # HARD-CODED WITHIN-STUDY SELECTION RATIO
+    gamma = 3
+    
+    d = d %>% rowwise() %>%
+      mutate( Fi.prob = ifelse(affirm == TRUE, 1, 1/gamma),
+              Fi = rbinom(n = 1, size = 1, prob = Fi.prob) )
+
+  }
+  
+  if ( hack == "no" ) d$Fi = 1
+  
   if ( return.only.published == TRUE ) d = d[ d$Di == 1, ]
   
   return(d)
   
 }
 
+
+# two boolean vectors
+# P(vec1 == 1 | vec2 == 1)
+conditional_prob = function(vec1, vec2){
+  
+  if ( mean(vec2 == 1) > 0 ){
+    return( mean( vec1 == 1 & vec2 == 1 ) / mean(vec2 == 1) )
+  } else {
+    return(NA)
+  }
+}
+
+
+### example
+# 
+# d = sim_one_study_set(Nmax = 20,
+#                       Mu = 1,
+#                       t2a = 1,
+#                       m = 50,
+#                       t2w = .5,
+#                       se = 1,
+#                       hack = "favor-lowest-p",
+#                       return.only.published = FALSE)
+# nrow(d)
+# d
 
 ### example
 # 
@@ -972,6 +1050,50 @@ srr = function() {
              mutate(MhatWidth = MHi - MLo))
     cat("\n")
   }
+}
+
+
+
+# nicely report a metafor or robumeta object with optional suffix to denote which model
+report_meta = function(.mod,
+                       .mod.type = "rma",  # "rma" or "robu"
+                       .suffix = "") {
+
+  if ( !is.null(.mod) ) {
+
+
+    if ( .mod.type == "rma" ) {
+      tau.CI = tau_CI(.mod)
+      .res = data.frame( .mod$b,
+                         .mod$ci.lb,
+                         .mod$ci.ub,
+
+                         sqrt(.mod$tau2),
+                         tau.CI[1],
+                         tau.CI[2] )
+    }
+
+
+    if ( .mod.type == "robu" ) {
+
+      .res = data.frame( .mod$b.r,
+                         .mod$reg_table$CI.L,
+                         .mod$reg_table$CI.U,
+
+                         sqrt(.mod$mod_info$tau.sq),
+                         NA,
+                         NA )
+    }
+
+  } else {
+    .res = data.frame( rep(NA, 6) )
+  }
+
+
+  names(.res) = paste( c("Mhat", "MLo", "MHi", "Shat", "SLo", "SHi"), .suffix, sep = "" )
+  row.names(.res) = NULL
+
+  return( list(stats = .res) )
 }
 
 # SMALL GENERIC HELPERS ---------------------
@@ -1310,47 +1432,7 @@ res1 = function() {
 
 
 
-# # nicely report a metafor or robumeta object with optional suffix to denote which model
-# report_meta = function(.mod,
-#                        .mod.type = "rma",  # "rma" or "robu"
-#                        .suffix = "") {
-#   
-#   if ( !is.null(.mod) ) {
-#     
-#     
-#     if ( .mod.type == "rma" ) {
-#       tau.CI = tau_CI(.mod)
-#       .res = data.frame( .mod$b,
-#                          .mod$ci.lb,
-#                          .mod$ci.ub,
-#                          
-#                          sqrt(.mod$tau2),
-#                          tau.CI[1],
-#                          tau.CI[2] )
-#     } 
-#     
-#     
-#     if ( .mod.type == "robu" ) {
-#       
-#       .res = data.frame( .mod$b.r,
-#                          .mod$reg_table$CI.L,
-#                          .mod$reg_table$CI.U,
-#                          
-#                          sqrt(.mod$mod_info$tau.sq),
-#                          NA,
-#                          NA )
-#     } 
-#     
-#   } else {
-#     .res = data.frame( rep(NA, 6) )
-#   }
-#   
-#   
-#   names(.res) = paste( c("Mhat", "MLo", "MHi", "Shat", "SLo", "SHi"), .suffix, sep = "" )
-#   row.names(.res) = NULL
-#   
-#   return( list(stats = .res) )
-# }
+
 
 # # 2022-3-19: I NO LONGER THINK IT MAKES SENSE TO USE THIS PLOT WITH VARIABLE SEI'S. 
 # #  BUT SAVE IT B/C USEFUL WHEN SEI'S ARE THE SAME.

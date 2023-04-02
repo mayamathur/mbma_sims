@@ -50,6 +50,7 @@ scen.params = tidyr::expand_grid(
   hack = c("affirm"),  # but there will not be any hacking since prob.hacked is 0
   rho = c(0),
   k.pub.nonaffirm = c(5, 10, 15, 30, 50),
+  # be careful about fractional values; might make overall eta hard to calculate 
   prob.hacked = c(0),
   
   eta = c(1, 5, 10),
@@ -62,7 +63,7 @@ scen.params = tidyr::expand_grid(
   sig2B = 0.5,
   prob.conf = c(0.5), 
   
-  # Stan control args - only relevant if running RTMA
+  # Stan control args - only relevant if running RTMA - remove these args?
   stan.maxtreedepth = 25,
   stan.adapt_delta = 0.995,
   

@@ -149,14 +149,14 @@ if (run.local == FALSE) {
       
       get.CIs = TRUE,
       run.optimx = FALSE )
-  
+    
     
     scen.params$scen = 1:nrow(scen.params)
     
     scen = 1
   }  # end "if ( interactive.cluster.run == TRUE )"
   
-
+  
   
   # locally, with total k = 100, Nmax = 10, and sim.reps = 250, took 93 min total
   # for that I did sim.reps = 100 per doParallel
@@ -188,34 +188,39 @@ if ( run.local == TRUE ) {
   source("helper_MBMA.R")
   
   
-  # ~~ Set Local Sim Params -----------------------------
+  # ~~ ********** Set Local Sim Params -----------------------------
   
   # for testing selection on SEs
   scen.params = tidyr::expand_grid(
     
-    rep.methods = "naive ; mbma-MhatB ; mbma-muB",
+    rep.methods = "naive ; mbma-MhatB ; mbma-muB ; 2psm",
     
     
     # args from sim_meta_2
-    Nmax = 1,
+    Nmax = 1, 
     Mu = c(0.5),
-    t2a = c(0.25^2), 
-    t2w = c(0),
+    t2a = c(0.25), 
+    t2w = c(0.25),
     m = 50,
     
-    hack = c("affirm"),  # but there will not be any hacking since prob.hacked is 0
+    #hack = c("favor-lowest-p")
+    hack = "favor-gamma-ratio",
     rho = c(0),
     k.pub.nonaffirm = c(100),
-    prob.hacked = c(0),
+    prob.hacked = c(0), 
     
     eta = c(5),
     
     true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
     
     # confounding parameters
-    muB = log(3),
-    sig2B = 0.5,
-    prob.conf = c(0.5), 
+    # muB = log(3),
+    # sig2B = 0.5,
+    # prob.conf = c(0.5), 
+    
+    muB = 0,
+    sig2B = 0,
+    prob.conf = 0,
     
     # Stan control args - only relevant if running RTMA
     stan.maxtreedepth = 25,
@@ -318,7 +323,7 @@ doParallel.seconds = system.time({
       cat("\n\n scen.params again:\n")
       print(scen.params)
     }
-
+    
     p = scen.params[ scen.params$scen == scen, names(scen.params) != "scen"]
     
     # calculate TOTAL heterogeneity
@@ -344,7 +349,7 @@ doParallel.seconds = system.time({
                     rho = p$rho,
                     
                     eta = p$eta,
-                     
+                    
                     muB = p$muB,
                     sig2B = p$sig2B,
                     prob.conf = p$prob.conf,
@@ -355,13 +360,18 @@ doParallel.seconds = system.time({
     
     mean(d$Ci)
     
-    # d %>%
-    #   filter(Di == 1 & Di.across == 1) %>%
-    #   group_by(Ci, affirm) %>%
-    #   summarise(n(),
-    #             mean(Bi),
-    #             mean(mui),
-    #             mean(yi))
+    # TEMP    
+    d %>% group_by(affirm) %>%
+      summarise( mean(Fi), mean(Di.across))
+    
+    
+    # filter not working here
+    d[ d$Fi == 1 & d$Di.across == 1, ] %>%
+      group_by(Ci, affirm) %>%
+      summarise(n(),
+                mean(Bi),
+                mean(mui),
+                mean(yi))
     
     d$Zi = d$yi / sqrt(d$vi)
     
@@ -396,17 +406,18 @@ doParallel.seconds = system.time({
       d$vi.adj.true = d$vi
       d$tcrit.adj.true = d$tcrit
     }
- 
+    
     
     
     # ***** For MBMA: Identifiable Confounding Adjustment (ESTIMATED muB, sigB) -----------------
     
     # dataset of only favored AND published results
     # (used in this section)
-    dp = d %>% filter(Di == 1 & Di.across == 1)
+    #dp = d %>% filter(Fi == 1 & Di.across == 1)  # throwing weird error now?
+    dp = d[ d$Fi == 1 & d$Di.across == 1, ]
     
     if ( any(dp$Ci == 1) ) {
-
+      
       # P(A^*_i = a | C^*_i = 1, D^*_i = 1)
       ( P.affirm.pub = mean( dp$affirm[ dp$Ci == 1 ] ) )
       # and P(A^*_i = 0 | C^*_i = 1):
@@ -435,7 +446,7 @@ doParallel.seconds = system.time({
       denom = P.affirm.pub + p$eta * P.nonaffirm.pub
       
       # ~ Sample estimate of muB -------------------
-
+      
       ( MhatB = (1/denom) * ( P.nonaffirm.pub * p$eta * MhatB.nonaffirm.obs +
                                 P.affirm.pub * MhatB.affirm.obs ) )
       
@@ -513,7 +524,7 @@ doParallel.seconds = system.time({
       d$tcrit.adj.est[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] *
                                          sqrt(d$vi[ d$Ci == 1 ]) - MhatB ) / sqrt(d$vi.adj.est[ d$Ci == 1 ])
       
-
+      
       # ~ Sanity checks on RTMA reparametrization -------------------
       
       # look for problems calculating the adjusted estimates
@@ -574,7 +585,7 @@ doParallel.seconds = system.time({
         expect_equal( d$affirm,
                       d$yi.adj.est > d$tcrit.adj.est * sqrt(d$vi.adj.est) )
       }
-
+      
       
     } else {
       # i.e., if Ci = 0 always
@@ -586,13 +597,14 @@ doParallel.seconds = system.time({
       shat2B = NA
     }
     
-   
+    
     
     # ~ Dataset Subsets for Various Methods ------------------------------
     
     # dataset of only favored AND published results
     # overwrite the previous one to get the new variables (e.g., yi.adj.est)
-    dp = d %>% filter(Di == 1 & Di.across == 1)
+    #dp = d %>% filter(Fi == 1 & Di.across == 1)  # throwing weird error now?
+    dp = d[ d$Fi == 1 & d$Di.across == 1, ]
     
     # published nonaffirmatives only
     dpn = dp[ dp$affirm == FALSE, ]
@@ -639,6 +651,8 @@ doParallel.seconds = system.time({
                                 .rep.res = rep.res )
     }
     
+    rep.res
+    
     
     # ~~ 2PSM (All Published Draws)
     
@@ -662,17 +676,33 @@ doParallel.seconds = system.time({
                                                             Shat = sqrt( mod[[2]]$par[1] ),
                                                             # truncate lower limit at 0
                                                             SLo = sqrt( max( 0, mod[[2]]$par[1] - qnorm(.975) * ses[1] ) ),
-                                                            SHi = sqrt( mod[[2]]$par[1] + qnorm(.975) * ses[1] ) ) ) 
+                                                            SHi = sqrt( mod[[2]]$par[1] + qnorm(.975) * ses[1] ),
+                                                            
+                                                            # estimated OVERALL selection ratio (eta*gamma)
+                                                            # index [3] would change for PSM with more cut points
+                                                            EtaGammaHat = 1/mod$output_adj$par[3]
+                                                            ) )
+                                  
+                                                             
                                 },
                                 .rep.res = rep.res )
       
     }
     
     
-  
+    
     # ~ New Methods ------------------------------
     
     # ~~ ****** MBMA ------------------------------
+    
+    
+    #bm: mental sanity checks on 2PSM and MBMA performance when there is p-hacking
+    #  makes sense that 2PSM is negatively biased (as in SAPH), 
+    #  but I'm surprised that MBMA is working fine even though eta doesn't incorporate hacking
+    #  both are not correctly spec'd because of lowest-p hacking
+    #  next try a form of hacking in which 2PSM is correctly spec? i.e., affirm type?
+    
+    
     
     # using the identifiable, reweighting-based sample estimate of muB ("MhatB")
     if ( "mbma-MhatB" %in% all.methods ) {
@@ -774,7 +804,7 @@ doParallel.seconds = system.time({
                                                      vi = dp$vi)
                                   t2hat.naive = meta.re$tau2  #@ could subtract off the sig2B here, but would also need to account for some studies' being unconfounded
                                   
-  
+                                  
                                   # fit weighted robust model
                                   meta.robu = robu( yi.adj.true ~ 1,
                                                     studynum = 1:nrow(dp),
@@ -799,13 +829,13 @@ doParallel.seconds = system.time({
     }
     
     
-  
+    
     
     #srr()
     
     # ~~ ********* RTMA WITH CONFOUNDING ADJUSTMENT ------------------------------
     
-   # RTMA with true bias parameters
+    # RTMA with true bias parameters
     if ( "rtma-adj-muB" %in% all.methods ) {
       # # temp for refreshing stan code
       # path = "/home/groups/manishad/MBMA"
@@ -891,7 +921,7 @@ doParallel.seconds = system.time({
     
     # THIS IS STILL USING THE TRUE ADJUSTMENT
     if ( "jeffreys-adj-sd" %in% all.methods ) {
-
+      
       rep.res = run_method_safe(method.label = c("jeffreys-adj-sd"),
                                 method.fn = function() estimate_jeffreys_RTMA(yi = dpn$yi.adj.true,
                                                                               sei = sqrt(dpn$vi.adj.true), 
@@ -981,7 +1011,7 @@ doParallel.seconds = system.time({
                                         # this is an underlying SAMPLE estimate of the truth; should approximately agree with MhatB and muB
                                         sancheck.EBsti = ifelse( mean(d$Ci == 1 & d$Di == 1) > 0,
                                                                  mean( d$Bi[ d$Ci == 1 & d$Di == 1] ),
-                                                                       NA ),
+                                                                 NA ),
                                         
                                         sancheck.shat2B = shat2B )
     
@@ -1137,7 +1167,7 @@ expect_equal( as.numeric( sum(rs$rep.seconds, na.rm = TRUE) ),
 # ~ QUICK RESULTS SUMMARY ---------------------------------------------------
 
 if ( run.local == TRUE ) {
-#if ( TRUE ) {  
+  #if ( TRUE ) {  
   # quick look locally
   # rs %>% mutate_if(is.numeric, function(x) round(x,2) )
   

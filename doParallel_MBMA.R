@@ -197,7 +197,7 @@ if ( run.local == TRUE ) {
     
     
     # args from sim_meta_2
-    Nmax = 5, 
+    Nmax = 1, 
     Mu = c(0.25),
     t2a = c(0.25), 
     t2w = c(0),
@@ -210,23 +210,23 @@ if ( run.local == TRUE ) {
     hack = "affirm2",
     rho = c(0),
     k.pub.nonaffirm = c(30),
-    prob.hacked = c(1), 
+    prob.hacked = c(0), 
     
     eta = c(10),
     # within-study selection ratio; only used when hack=favor-gamma-ratio
     # important: other hacking methods will IGNORE gamma because can't be directly specified
     gamma = c(2), 
+    SAS.type = "carter",
     
     true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
     
     # confounding parameters
-    muB = 0.25,
-    sig2B = 0.5,
-    prob.conf = c(0.5),
-    
-    # muB = 0,
-    # sig2B = 0,
-    # prob.conf = 0,
+    # muB = 0.25,
+    # sig2B = 0.5,
+    # prob.conf = c(0.5),
+    muB = 0,
+    sig2B = 0,
+    prob.conf = 0,
     
     # Stan control args - only relevant if running RTMA
     stan.maxtreedepth = 25,
@@ -356,6 +356,7 @@ doParallel.seconds = system.time({
                     
                     eta = p$eta,
                     gamma = p$gamma,
+                    SAS.type = p$SAS.type,
                     
                     muB = p$muB,
                     sig2B = p$sig2B,
@@ -367,18 +368,22 @@ doParallel.seconds = system.time({
     
     mean(d$Ci)
     
-    #@TEMP    
-    d %>% group_by(affirm) %>%
-      summarise( mean(Fi), mean(Di.across))
     
+    # sanity
+    #View(d %>% select(yi, vi, pval, affirm, Di.across.prob))
     
-    # using base-R filtering because filter() not working here
-    d[ d$Fi == 1 & d$Di.across == 1, ] %>%
-      group_by(Ci, affirm) %>%
-      summarise(n(),
-                mean(Bi),
-                mean(mui),
-                mean(yi))
+    # #@TEMP    
+    # d %>% group_by(affirm) %>%
+    #   summarise( mean(Fi), mean(Di.across))
+    # 
+    # 
+    # # using base-R filtering because filter() not working here
+    # d[ d$Fi == 1 & d$Di.across == 1, ] %>%
+    #   group_by(Ci, affirm) %>%
+    #   summarise(n(),
+    #             mean(Bi),
+    #             mean(mui),
+    #             mean(yi))
     
     d$Zi = d$yi / sqrt(d$vi)
     
@@ -613,6 +618,12 @@ doParallel.seconds = system.time({
     #dp = d %>% filter(Fi == 1 & Di.across == 1)  # throwing weird error now?
     dp = d[ d$Fi == 1 & d$Di.across == 1, ]
     
+    # empirical eta in underlying data
+    # useful for weird pub bias methods like carter_censor
+    num = conditional_prob( d$Di.across[ d$Fi == 1 ] == 1, d$affirm[ d$Fi == 1 ] == 1 )
+    denom = conditional_prob( d$Di.across[ d$Fi == 1 ] == 1, d$affirm[ d$Fi == 1 ] == 0 )
+    eta_emp = num/denom
+    
     # published nonaffirmatives only
     dpn = dp[ dp$affirm == FALSE, ]
     
@@ -714,8 +725,16 @@ doParallel.seconds = system.time({
                                   #  only change is that we want affirm indicator to be that of the *confounded* estimates, not the adjusted ones
                                   # weight for model
                                   weights = rep( 1, length(dp$yi.adj.est) )
+                                  
+     
+                                  # set weights based on SAS type
                                   # weight based on the affirm indicator of the *confounded* estimates
-                                  weights[ dp$affirm == FALSE ] = p$eta
+                                  weights[ dp$affirm == FALSE ] = p$eta  # default
+                                  if ( p$SAS.type == "carter_censor" ) {
+                                    # this SAS mechanism doesn't use p$eta, so need to get empirical estimate
+                                    #**mention in paper
+                                    weights[ dp$affirm == FALSE ] = eta_emp
+                                  }
                                   
                                   # initialize a dumb (unclustered and uncorrected) version of tau^2
                                   # which is only used for constructing weights
@@ -739,7 +758,9 @@ doParallel.seconds = system.time({
                                                             
                                                             Shat = NA,
                                                             SLo = NA,
-                                                            SHi = NA ) ) 
+                                                            SHi = NA,
+                                                            
+                                                            EtaEmpCarter = eta_emp ) ) 
                                 },
                                 .rep.res = rep.res )
       
@@ -1242,7 +1263,8 @@ if ( run.local == TRUE ) {
                MHi = meanNA(MHi),
                
                EtaGammaAssumed = meanNA(EtaGammaAssumed),
-               EtaGammaHat = meanNA(EtaGammaHat) )
+               EtaGammaHat = meanNA(EtaGammaHat),
+               EtaEmpCarter = meanNA(EtaEmpCarter) )
   
   # round
   agg = as.data.frame( agg %>% mutate_if( is.numeric,

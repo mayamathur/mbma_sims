@@ -333,19 +333,11 @@ sim_meta_2 = function(Mu,
     newRows = newRows %>% add_column( .after = 1,
                                       study.draw )
     
-    
   
     # apply SAS to the study's favored draw only
-    #@REMEMBER THAT IF HACK TYPE != AFFIRM, Di ALREADY INCLUDES SOME SAS
-    # ULTIMATELY SHOULD PROBABLY HAVE SIM_ONE_STUDY SET ONLY APPLY SWS, AND THEN HERE APPLY SAS
-    #  BY BOTH THE INVESTIGATORS AND THE PUBLICATION PROCESS
+    # IMPORTANT: Fi represents SWS selection indicator; Di.across represents OVERALL SWS & SAS indicator
+    #   since it is set to 0 whenever Fi = 0
     # flag2: implement SAS favoring large effect sizes here
-    # newRows$Di.across.prob = rep(0, nrow(newRows))  # default to zero to avoid applying SAS to non-favored draws
-    # newRows$Di.across.prob[ newRows$Di == 1 & newRows$affirm == TRUE ] = 1
-    # newRows$Di.across.prob[ newRows$Di == 1 & newRows$affirm == FALSE ] = 1/eta
-    # newRows$Di.across = rbinom( n=nrow(newRows), size = 1, prob = newRows$Di.across.prob )
-    
-    #@new: switch to using Fi within studies (only)
     newRows$Di.across.prob = rep(0, nrow(newRows))  # default to zero to avoid applying SAS to non-favored draws
     newRows$Di.across.prob[ newRows$Fi == 1 & newRows$affirm == TRUE ] = 1
     newRows$Di.across.prob[ newRows$Fi == 1 & newRows$affirm == FALSE ] = 1/eta
@@ -354,6 +346,9 @@ sim_meta_2 = function(Mu,
     if ( i == 1 ) .dat = newRows else .dat = rbind( .dat, newRows )
     
     i = i + 1
+    
+    # the ".dat$Fi == 1" is included for clarity but is unnecessary given that Di.across == 0 whenever
+    #   Fi == 0
     k.pub.nonaffirm.achieved = sum( .dat$affirm == FALSE & .dat$Fi == 1 & .dat$Di.across == 1 ) 
     
   }  # end "while( k.pub.nonaffirm.achieved < k.pub.nonaffirm )"
@@ -374,13 +369,10 @@ sim_meta_2 = function(Mu,
   
 
   # return only draws that are both favored AND published
-  # remember that in code, Di is a joint indicator for being favored AND published
   if ( return.only.published == TRUE ) {
-    # Di at this point is just the favoring indicator (for affirm) plus any SAS from investigators themselves (for affirm2 or favor-best)
-    .dat = .dat[ .dat$Di == 1 & .dat$Di.across == 1, ]
+    .dat = .dat[ .dat$Fi == 1 & .dat$Di.across == 1, ]
   }
   
-  #@: NEED TO RETURN MEAN(.DAT$GAMMA) FROM *BEFORE* YOU SUBSET TO ONLY PUBLISHED STUDIES!
   return(.dat)
 }
 
@@ -641,28 +633,29 @@ sim_one_study_set = function(Nmax,  # max draws to try
   
   
   # ~~ Decide which draw to favor & publish ----
-  # in the first 2 cases, Di=1 for only the last draw IF we got an affirm result
+  # for these hack types, Fi=1 for only the last draw IF we got an affirm result
   #  but if we didn't, then it will always be 0
-  if ( hack == "signif" ) d$Di = (d$signif == TRUE)
-  if (hack == "affirm") d$Di = (d$affirm == TRUE)
+  if ( hack == "signif" ) d$Fi = (d$signif == TRUE)
+  if ( hack == "affirm" ) d$Fi = (d$affirm == TRUE)
   
-  # OLD - still uses Di as within-study indicator
+  # CHANGED Di to Fi
   # if no hacking or affirmative hacking without file drawer,
   #   assume only LAST draw is published,
   #   which could be affirm or nonaffirm
   if ( hack %in% c("no", "affirm2") ) {
-    d$Di = 0
-    d$Di[ length(d$Di) ] = 1
+    d$Fi = 0
+    d$Fi[ length(d$Fi) ] = 1
   }
   
-  # OLD - still uses Di as within-study indicator
-  # for favor-best-affirm-wch, favor the one with the lowest p-value
+  # CHANGED Di to Fi
+  # for favor-best-affirm-wch, consider all AFFIRMATIVE draws and favor the one
+  #  with the lowest p-value
   if ( hack %in% c("favor-best-affirm-wch") ) {
-    d$Di = 0
+    d$Fi = 0
     # if there was at least 1 affirm, publish it 
     if ( any(d$affirm == TRUE) ) {
       best.affirm.pval = min( d$pval[d$affirm == TRUE] )
-      d$Di[ d$pval == best.affirm.pval & d$affirm == TRUE ] = 1
+      d$Fi[ d$pval == best.affirm.pval & d$affirm == TRUE ] = 1
     }
     # ...otherwise don't publish any draw
     # sanity check:
@@ -671,10 +664,8 @@ sim_one_study_set = function(Nmax,  # max draws to try
   
   
   # NEW - using Fi as within-study indicator
-  # for favor-best-affirm-wch, favor the one with the lowest p-value
+  # for favor-lowest-p, consider all draws and favor the one with the lowest p-value
   if ( hack %in% c("favor-lowest-p") ) {
-
-    #@HERE using Fi instead of Di because this mechanism cleanly separates the two indicators
     d$Fi = 0
     best.pval = min(d$pval)
     d$Fi[ d$pval == best.pval ] = 1
@@ -687,9 +678,10 @@ sim_one_study_set = function(Nmax,  # max draws to try
 
   }
   
-  if ( hack == "no" ) d$Fi = 1
-  
-  if ( return.only.published == TRUE ) d = d[ d$Di == 1, ]
+  if ( return.only.published == TRUE ){
+    stop("return.only.published==TRUE not implemented")
+    #  d = d[ d$Di == 1, ]
+  }
   
   return(d)
   

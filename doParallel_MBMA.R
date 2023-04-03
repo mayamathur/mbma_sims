@@ -203,8 +203,11 @@ if ( run.local == TRUE ) {
     t2w = c(0.25),
     m = 50,
     
-    hack = c("favor-lowest-p"),
+    #bm: try running existing hacking methods? affirm or affirm2?
+    # remember that affirm will only work if prob.hacked < 1 else will never have nonaffirms
+    #hack = c("favor-lowest-p"),
     #hack = "favor-gamma-ratio",
+    hack = "affirm2",
     rho = c(0),
     k.pub.nonaffirm = c(30),
     prob.hacked = c(1), 
@@ -364,12 +367,12 @@ doParallel.seconds = system.time({
     
     mean(d$Ci)
     
-    # TEMP    
+    #@TEMP    
     d %>% group_by(affirm) %>%
       summarise( mean(Fi), mean(Di.across))
     
     
-    # filter not working here
+    # using base-R filtering because filter() not working here
     d[ d$Fi == 1 & d$Di.across == 1, ] %>%
       group_by(Ci, affirm) %>%
       summarise(n(),
@@ -699,14 +702,6 @@ doParallel.seconds = system.time({
     # ~ New Methods ------------------------------
     
     # ~~ ****** MBMA ------------------------------
-    
-    
-    #bm: mental sanity checks on 2PSM and MBMA performance when there is p-hacking
-    #  makes sense that 2PSM is negatively biased (as in SAPH), 
-    #  but I'm surprised that MBMA is working fine even though eta doesn't incorporate hacking
-    #  both are not correctly spec'd because of lowest-p hacking
-    #  next try a form of hacking in which 2PSM is correctly spec? i.e., affirm type?
-    
     
     
     # using the identifiable, reweighting-based sample estimate of muB ("MhatB")

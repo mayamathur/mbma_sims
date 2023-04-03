@@ -197,10 +197,10 @@ if ( run.local == TRUE ) {
     
     
     # args from sim_meta_2
-    Nmax = 10, 
-    Mu = c(0.5),
+    Nmax = 5, 
+    Mu = c(0.25),
     t2a = c(0.25), 
-    t2w = c(0.25),
+    t2w = c(0),
     m = 50,
     
     #bm: try running existing hacking methods? affirm or affirm2?
@@ -212,7 +212,7 @@ if ( run.local == TRUE ) {
     k.pub.nonaffirm = c(30),
     prob.hacked = c(1), 
     
-    eta = c(2),
+    eta = c(10),
     # within-study selection ratio; only used when hack=favor-gamma-ratio
     # important: other hacking methods will IGNORE gamma because can't be directly specified
     gamma = c(2), 
@@ -220,13 +220,13 @@ if ( run.local == TRUE ) {
     true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
     
     # confounding parameters
-    # muB = log(3),
-    # sig2B = 0.5,
-    # prob.conf = c(0.5), 
+    muB = 0.25,
+    sig2B = 0.5,
+    prob.conf = c(0.5),
     
-    muB = 0,
-    sig2B = 0,
-    prob.conf = 0,
+    # muB = 0,
+    # sig2B = 0,
+    # prob.conf = 0,
     
     # Stan control args - only relevant if running RTMA
     stan.maxtreedepth = 25,
@@ -1179,17 +1179,17 @@ doParallel.seconds = system.time({
 
 
 
-dim(rs)
-# quick look
-rs %>% mutate(MhatWidth = MHi - MLo,
-              MhatCover = as.numeric( MHi > Mu & MLo < Mu ) ) %>%
-  dplyr::select(method, Mhat, MhatWidth, MhatCover,EtaGammaHat,EtaGammaAssumed,
-                sancheck.MhatB, sancheck.EBsti) %>%
-
-  group_by(method) %>%
-  summarise_if(is.numeric, function(x) round( meanNA(x), 2 ) )
-
-any(is.na(rs$sancheck.MhatB))
+# dim(rs)
+# # quick look
+# rs %>% mutate(MhatWidth = MHi - MLo,
+#               MhatCover = as.numeric( MHi > Mu & MLo < Mu ) ) %>%
+#   dplyr::select(method, Mhat, MhatWidth, MhatCover,EtaGammaHat,EtaGammaAssumed,
+#                 sancheck.MhatB, sancheck.EBsti) %>%
+# 
+#   group_by(method) %>%
+#   summarise_if(is.numeric, function(x) round( meanNA(x), 2 ) )
+# 
+# any(is.na(rs$sancheck.MhatB))
 
 
 
@@ -1239,7 +1239,10 @@ if ( run.local == TRUE ) {
                MhatCover = meanNA(MLo < Mu & MHi > Mu),
                MhatWidth = meanNA( MHi - MLo ),
                MLo = meanNA(MLo),
-               MHi = meanNA(MHi) )
+               MHi = meanNA(MHi),
+               
+               EtaGammaAssumed = meanNA(EtaGammaAssumed),
+               EtaGammaHat = meanNA(EtaGammaHat) )
   
   # round
   agg = as.data.frame( agg %>% mutate_if( is.numeric,

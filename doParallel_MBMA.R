@@ -710,6 +710,11 @@ doParallel.seconds = system.time({
     
     rep.res
     
+    #bm: now add a more flexible selection model
+    # then implement the other easy DGP things and make sure they all run locally
+    # you got this! oh yeah! :)
+    
+    
     # ~ New Methods ------------------------------
     
     # ~~ ****** MBMA ------------------------------

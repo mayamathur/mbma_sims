@@ -40,7 +40,7 @@ scen.params = tidyr::expand_grid(
   
   
   # args from sim_meta_2
-  Nmax = 1,
+  Nmax = 5,  # later code will set this to 1 for unhacked studies
   true.dist = c("expo", "norm"),
   Mu = c(0, 0.5),
   t2a = c(0, 0.25^2, 0.5^2),

@@ -255,7 +255,8 @@ yi_qqplot = function(yi,
 #    (will simulate as many studies as needed to achieve that number)
 # - prob.hacked: probability that an underlying study is hacked
 # - SAS.type: "2psm" is what I had originally; "carter" is carter_censor in helper code
-sim_meta_2 = function(Mu,  
+sim_meta_2 = function(Mu,
+                      true.dist = "norm", # dist of population effects for this study set
                       t2a,  
                       k.pub.nonaffirm,  # number of published nonaffirmatives
                       return.only.published = FALSE,
@@ -514,14 +515,13 @@ sim_meta_2 = function(Mu,
 
 # - "favor-gamma-ratio" (staackable hacking): Always make Nmax draws. Decide whether to favor each draw based on within-study selection ratio, gamma. As such, studies can have multiple favored draws. (2PSM will be correctly specificed, I think also subject to constraints on heterogeneity - see SAPH).
 
-# NOTE: If you add args here, need to update quick_sim as well
-
 # If Nmax is small, rhoEmp (empirical autocorrelation of muin's) will be smaller
 #  than rho. That's okay because it reflects small-sample bias in autocorrelation
 # estimate itself, not a problem with the simulation code
 # For more about the small-sample bias: # https://www.jstor.org/stable/2332719?seq=1#metadata_info_tab_contents
 
 sim_one_study_set = function(Nmax,  # max draws to try
+                             true.dist = "norm", # dist of population effects for this study set
                              Mu,  # overall mean for meta-analysis
                              t2a,  # across-study heterogeneity (NOT total heterogeneity)
                              m,  # sample size for this study
@@ -544,16 +544,16 @@ sim_one_study_set = function(Nmax,  # max draws to try
   
   
   # # test only
-  # Nmax = 20
-  # Mu = 0.1
+  # Nmax = 1
+  # Mu = -0.15
   # t2a = 0.1
   # m = 50
   # t2w = .5
   # se = 1
-  # hack = "favor-best-affirm-wch"
-  # muB = 0
+  # hack = "no"
+  # muB = 0.2
   # sig2B = 0
-  # Ci = 0  # should this study set be confounded?
+  # Ci = 1  # should this study set be confounded?
   # rho=0
   
   # ~~ Mean (potentially confounded) for this study set ----
@@ -564,9 +564,22 @@ sim_one_study_set = function(Nmax,  # max draws to try
   
   # doesn't have t2w because that applies to results within this study set
   #@flag1: update this to allow other distributions besides rnorm
-  mui = Mu + Bi + rnorm(mean = 0,
-                        sd = sqrt(t2a),
-                        n = 1)
+  # population effect for this study set
+  if ( true.dist == "norm" ){
+    mui = Mu + Bi + rnorm(mean = 0,
+                          sd = sqrt(t2a),
+                          n = 1)
+  }
+  
+  if ( true.dist == "expo" ){
+    # set the rate so the heterogeneity is correct
+    mui = rexp( n = 1, rate = sqrt(1/t2a) )
+    # now the mean is sqrt(t2a) rather than Mu + Bi
+    # shift to have the correct mean (in expectation)
+    mui = mui + ( (Mu + Bi) - sqrt(t2a))
+    
+  }
+  
   
   # TRUE SD (not estimated)
   sd.y = se * sqrt(m)
@@ -894,6 +907,8 @@ make_one_draw = function(mui,  # mean for this study set
   
   # true mean for draw n (based on within-study heterogeneity)
   # either we want uncorrelated draws OR it's the first of a series of correlated draws
+  # note that the within-study draws are normal regardless of true.dist
+  #  (that arg only controls the study SET's population effect)
   if ( rho == 0 | is.na(last.muin) ) {
     muin = rnorm(mean = mui,
                  sd = sqrt(t2w),

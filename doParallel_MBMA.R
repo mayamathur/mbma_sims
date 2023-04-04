@@ -125,6 +125,7 @@ if (run.local == FALSE) {
       
       # args from sim_meta_2
       Nmax = 10,
+      true.dist = "expo",
       Mu = c(0.5),
       t2a = c(0.2^2),
       t2w = c(0.2^2),
@@ -199,6 +200,7 @@ if ( run.local == TRUE ) {
     
     # args from sim_meta_2
     Nmax = 1, 
+    true.dist = "expo",
     Mu = c(0.25),
     t2a = c(0.25), 
     t2w = c(0),
@@ -367,7 +369,7 @@ doParallel.seconds = system.time({
                     prob.hacked = p$prob.hacked,
                     return.only.published = FALSE)
     
-    mean(d$Ci)
+    #mean(d$Ci)
     
     
     # sanity

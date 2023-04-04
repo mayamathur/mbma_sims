@@ -23,7 +23,7 @@ rm( list = ls() )
 
 
 # are we running locally?
-run.local = TRUE
+run.local = FALSE
 
 # should we set scen params interactively on cluster?
 interactive.cluster.run = FALSE
@@ -164,7 +164,7 @@ if (run.local == FALSE) {
   
   # simulation reps to run within this job
   # **this need to match n.reps.in.doParallel in the genSbatch script
-  if ( interactive.cluster.run == FALSE ) sim.reps = 2000
+  if ( interactive.cluster.run == FALSE ) sim.reps = 1000
   if ( interactive.cluster.run == TRUE ) sim.reps = 1  
   
   # set the number of cores

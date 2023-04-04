@@ -148,8 +148,8 @@ write.csv( scen.params, "scen_params.csv", row.names = FALSE )
 source("helper_MBMA.R")
 
 # number of sbatches to generate (i.e., iterations within each scenario)
-n.reps.per.scen = 2000
-n.reps.in.doParallel = 2000  # previous: 600
+n.reps.per.scen = 1000
+n.reps.in.doParallel = 1000  
 ( n.files = ( n.reps.per.scen / n.reps.in.doParallel ) * n.scen )
 
 
@@ -165,7 +165,9 @@ runfile_path = paste(path, "/testRunFile.R", sep="")
 sbatch_params <- data.frame(jobname,
                             outfile,
                             errorfile,
-                            jobtime = "00:30:00",  # 2022-6-19 with RTMA had used 2:00 and 200 reps.in.doParallel
+                            # (2022-6-19 with RTMA had used 2:00 and 200 reps.in.doParallel)
+                            #  for RSM_0 sims without RTMA and with 2000 reps.in.doParallel, used 00:30:00
+                            jobtime = "01:00:00",  
                             quality = "normal",
                             node_number = 1,
                             mem_per_node = 64000,
@@ -186,10 +188,10 @@ n.files
 # run just the first one
 # sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
 
-# 90
+# 2023-04-04: 8640
 path = "/home/groups/manishad/MBMA"
 setwd( paste(path, "/sbatch_files", sep="") )
-for (i in 1:90) {
+for (i in 2:1000) {
   system( paste("sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/", i, ".sbatch", sep="") )
 }
 

@@ -84,6 +84,7 @@ make_agg_data = function( .s,
                  "method",
                  
                  "Nmax",
+                 "true.dist",
                  "Mu",
                  "t2a",
                  "t2w",
@@ -96,11 +97,14 @@ make_agg_data = function( .s,
                  "prob.hacked",
                  
                  "eta",
+                 "gamma",
+                 "SAS.type",
                  
                  "true.sei.expr",
                  
                  "muB",
                  "sig2B",
+                 "prob.conf",
                  
                  "stan.adapt_delta",
                  "stan.maxtreedepth")
@@ -295,7 +299,8 @@ wrangle_agg_local = function(agg) {
   agg$method.pretty = NA
   agg$method.pretty[ agg$method == c("naive") ] = "Uncorrected"
   agg$method.pretty[ agg$method == c("maon-adj-MhatB") ] = "MAN adjusted"
-  agg$method.pretty[ agg$method == c("2psm") ] = "Selection model"
+  agg$method.pretty[ agg$method == c("2psm") ] = "Selection model (step)"
+  agg$method.pretty[ agg$method == c("beta-sm") ] = "Selection model (beta)"
   agg$method.pretty[ agg$method == c("mbma-MhatB") ] = "Proposed" 
   agg$method.pretty[ agg$method == c("mbma-Mhat-true-t2") ] = "MBMA (true t2)"
   table(agg$method, agg$method.pretty)
@@ -312,6 +317,7 @@ wrangle_agg_local = function(agg) {
                                             `runif(n = 1, min = 1, max = 3)` = "sei ~ U(1, 3)",
                                             `rbeta(n = 1, 2, 5)` = "sei ~ Beta(2, 5)",
                                             `0.02 + rexp(n = 1, rate = 3)` = "sei ~ Exp(3) + 0.02",
+                                            `0.02 + rexp(n = 1, rate = 3)` = "sei ~ Exp(1) + 0.02",
                                             `draw_lodder_se()` = "sei from Lodder",
                                             
                                             # by default, retain original factor level

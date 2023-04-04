@@ -98,6 +98,16 @@ if ( any(is.na(names(s))) ) {
 
 s = s %>% filter(!is.na(scen.name))
 
+
+
+# ~ Quick Sanity Check  ---------------------------
+
+s %>% group_by(scen.name, method) %>%
+  summarise(n(),
+            mean(Mu),
+            meanNA(Mhat),
+            mean(is.na(Mhat)))
+
 # ~ Write stitched.csv ---------------------------
 
 setwd(.results.stitched.write.path)
@@ -147,9 +157,7 @@ cat("\n nuni(agg$scen.name) =", nuni(agg$scen.name) )
 # look again at failures
 t = agg %>% group_by(k.pub.nonaffirm, method) %>%
   summarise( mean(MhatEstFail),
-             mean(MhatCIFail),
-             mean(MhatTestReject)
-             #meanNA(OptimxNAgreeOfConvergersMhatWinner)
+             mean(MhatCIFail)
              )
 as.data.frame(t)
 

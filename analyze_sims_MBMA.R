@@ -199,8 +199,8 @@ for ( .col in names(t)[ 2 : ncol(t) ] ) {
                           summarise.fun.name = "worst10th" ) )
 
 
-# no SWS
-temp = agg %>% filter(prob.hacked == 0); dim(temp)
+# scens with SWS
+temp = agg %>% filter(prob.hacked == 1); dim(temp)
 ( t1.mn = make_winner_table(.agg = temp,
                             summarise.fun.name = "mean" ) )
 ( t1.worst = make_winner_table(.agg = temp,

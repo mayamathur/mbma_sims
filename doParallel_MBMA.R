@@ -193,7 +193,8 @@ if ( run.local == TRUE ) {
   # for testing selection on SEs
   scen.params = tidyr::expand_grid(
     
-    rep.methods = "naive ; mbma-MhatB ; mbma-muB ; 2psm ; mbma-MhatB-gamma",
+    # for local runs, note that beta-sm is quite slow
+    rep.methods = "naive ; mbma-MhatB ; mbma-muB ; 2psm ; beta-sm ; mbma-MhatB-gamma",
     
     
     # args from sim_meta_2
@@ -212,7 +213,7 @@ if ( run.local == TRUE ) {
     k.pub.nonaffirm = c(30),
     prob.hacked = c(0), 
     
-    eta = c(10),
+    eta = c(3),
     # within-study selection ratio; only used when hack=favor-gamma-ratio
     # important: other hacking methods will IGNORE gamma because can't be directly specified
     gamma = c(2), 
@@ -710,9 +711,39 @@ doParallel.seconds = system.time({
     
     rep.res
     
-    #bm: now add a more flexible selection model
+
     # then implement the other easy DGP things and make sure they all run locally
     # you got this! oh yeah! :)
+    
+    
+    # ~~ 2PSM (All Published Draws)
+    
+    if ( "beta-sm" %in% all.methods ) {
+      
+      rep.res = run_method_safe(method.label = c("beta-sm"),
+                                method.fn = function() {
+                                  
+                                  # must start with naive fit for selmodel
+                                  naive = rma( yi = dp$yi,
+                                                     vi = dp$vi,
+                                                     method = "REML",
+                                                     knha = TRUE )
+                                  
+                                  mod = selmodel(x = naive,
+                                                 type = "beta",
+                                                 alternative = "two.sided")
+                                  
+                                  
+                                  # not returning any info about selection parameters because they
+                                  #  don't have same interpretation as eta
+                                  report_meta(mod, .mod.type = "rma")
+                                },
+                                .rep.res = rep.res )
+      
+    }
+    
+    
+    rep.res
     
     
     # ~ New Methods ------------------------------

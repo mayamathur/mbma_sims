@@ -339,9 +339,6 @@ sim_meta_2 = function(Mu,
     #### Apply SAS to the study's favored draw only
     # IMPORTANT: Fi represents SWS selection indicator; Di.across represents OVERALL SWS & SAS indicator
     #   since it is set to 0 whenever Fi = 0
-    # flag2: implement SAS favoring large effect sizes here
-    #bm
-    
     newRows$Di.across.prob = rep(0, nrow(newRows))  # default to zero to avoid applying SAS to non-favored draws
     
     if ( SAS.type == "2psm" ) {
@@ -349,7 +346,6 @@ sim_meta_2 = function(Mu,
       newRows$Di.across.prob[ newRows$Fi == 1 & newRows$affirm == FALSE ] = 1/eta
       
     } else if ( SAS.type == "carter" ) {
-      #bm
       newRows$Di.across.prob[ newRows$Fi == 1 ] = carter_censor(pObs = newRows$pval[ newRows$Fi == 1 ],
                                                                 direction = ifelse( newRows$pval[ newRows$Fi == 1 ] > 0, 1, -1),
                                                                 posSign_NS_baseRate = 0.3,

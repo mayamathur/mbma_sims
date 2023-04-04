@@ -1150,8 +1150,7 @@ report_meta = function(.mod,
                        .suffix = "") {
   
   if ( !is.null(.mod) ) {
-    
-    
+
     if ( .mod.type == "rma" ) {
       tau.CI = tau_CI(.mod)
       .res = data.frame( .mod$b,
@@ -1182,6 +1181,8 @@ report_meta = function(.mod,
   
   names(.res) = paste( c("Mhat", "MLo", "MHi", "Shat", "SLo", "SHi"), .suffix, sep = "" )
   row.names(.res) = NULL
+  
+  browser()
   
   return( list(stats = .res) )
 }

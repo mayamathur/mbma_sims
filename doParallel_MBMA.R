@@ -355,7 +355,7 @@ doParallel.seconds = system.time({
                     t2a = p$t2a,
                     t2w = p$t2w,
                     m = p$m,
-              
+                    
                     hack = p$hack,
                     rho = p$rho,
                     prob.hacked = p$prob.hacked,
@@ -704,9 +704,9 @@ doParallel.seconds = system.time({
                                                             # estimated OVERALL selection ratio (eta*gamma)
                                                             # index [3] would change for PSM with more cut points
                                                             EtaGammaHat = 1/mod$output_adj$par[3]
-                                                            ) )
+                                  ) )
                                   
-                                                             
+                                  
                                 },
                                 .rep.res = rep.res )
       
@@ -715,7 +715,7 @@ doParallel.seconds = system.time({
     
     rep.res
     
-
+    
     # then implement the other easy DGP things and make sure they all run locally
     # you got this! oh yeah! :)
     
@@ -729,23 +729,26 @@ doParallel.seconds = system.time({
                                   
                                   # must start with naive fit for selmodel
                                   naive = rma( yi = dp$yi,
-                                                     vi = dp$vi,
-                                                     method = "REML",
-                                                     knha = TRUE )
+                                               vi = dp$vi,
+                                               method = "REML",
+                                               knha = TRUE )
                                   
                                   mod = selmodel(x = naive,
                                                  type = "beta",
                                                  alternative = "two.sided")
                                   
-                                  # make own error because selmodel will still return something
-                                  #  if it has the warning "error when trying to invert Hessian"
-                                  #  in which case there can be a point estimate with no SEs
-                                  if ( is.na(mod$b) | is.na(mod$se) ) stop("beta-sm didn't converge")
-                                  
-                                  
                                   # not returning any info about selection parameters because they
                                   #  don't have same interpretation as eta
                                   report_meta(mod, .mod.type = "rma")
+                                  
+                                  # IMPORTANT: 
+                                  # beta-sm is prone to the warning: "error when trying to invert Hessian"
+                                  #  in which case there can be a point estimate with no SEs or tau
+                                  #  in this case, selmodel will still return something,
+                                  #  but report_meta will throw the missing value error from tau_CI
+                                  #  this behavior is what we want, but does mean that the overall.error
+                                  #  for beta-sm is not very informative
+  
                                 },
                                 .rep.res = rep.res )
       
@@ -771,7 +774,7 @@ doParallel.seconds = system.time({
                                   # weight for model
                                   weights = rep( 1, length(dp$yi.adj.est) )
                                   
-     
+                                  
                                   # set weights based on SAS type
                                   # weight based on the affirm indicator of the *confounded* estimates
                                   weights[ dp$affirm == FALSE ] = p$eta  # default

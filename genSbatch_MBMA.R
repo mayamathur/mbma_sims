@@ -113,11 +113,22 @@ scen.params = tidyr::expand_grid(
 #   get.CIs = TRUE,
 #   run.optimx = FALSE )
 
+
+
+
+
+
 #@update this?
 # if there are multiple hacking types, remove redundant combos
 # i.e., only need 1 hack type with p.hacked = 0
 first.hack.type = unique(scen.params$hack)[1]
 scen.params = scen.params %>% filter( prob.hacked > 0 | (prob.hacked == 0 & hack == first.hack.type) )
+
+# no need to make extra draws is prob.hacked = 0
+scen.params$Nmax[ scen.params$prob.hacked == 0 ] = 1
+
+scen.params %>% group_by(prob.hacked, hack) %>%
+  summarise( mean(Nmax) )
 
 # add scen numbers
 start.at = 1

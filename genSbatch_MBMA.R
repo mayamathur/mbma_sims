@@ -33,7 +33,7 @@ lapply( allPackages,
 #**you need to see all "TRUE" printed by this in order for the package to actually be loaded
 
 
-### 2022-7-23 - as in RSM_0 ###
+### 2022-7-23 ###
 scen.params = tidyr::expand_grid(
   
   rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; maon-adj-MhatB ; 2psm ; beta-sm",
@@ -42,6 +42,8 @@ scen.params = tidyr::expand_grid(
   # args from sim_meta_2
   Nmax = 5,  # later code will set this to 1 for unhacked studies
   true.dist = c("expo", "norm"),
+  true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)",  # original setting close to empirical distribution
+                    "0.02 + rexp(n = 1, rate = 1)"),  # larger SEs overall
   Mu = c(0, 0.5),
   t2a = c(0, 0.25^2, 0.5^2),
   t2w = c(0),
@@ -51,16 +53,15 @@ scen.params = tidyr::expand_grid(
   # remember: method affirm will only work if prob.hacked < 1 else will never have nonaffirms
   hack = c("affirm2", "favor-lowest-p", "favor-gamma-ratio"),  
   rho = c(0),
-  k.pub.nonaffirm = c(5, 10, 15, 30, 50),
   prob.hacked = c(1, 0),
   
   # SAS args
+  k.pub.nonaffirm = c(5, 10, 15, 30, 50),
   eta = c(1, 5, 10),
   gamma = 2,  # only used for method favor-gamma-ratio
   SAS.type = c("2psm", "carter"), # "2psm" (original) or "carter"
   
-  true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)",  # original setting close to empirical distribution
-                    "0.02 + rexp(n = 1, rate = 1)"),  # larger SEs overall
+
   
   # confounding parameters
   # NOT using log scale here b/c underlying data are continuous
@@ -115,10 +116,6 @@ scen.params = tidyr::expand_grid(
 
 
 
-
-
-
-#@update this?
 # if there are multiple hacking types, remove redundant combos
 # i.e., only need 1 hack type with p.hacked = 0
 first.hack.type = unique(scen.params$hack)[1]

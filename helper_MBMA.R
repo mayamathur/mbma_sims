@@ -286,10 +286,15 @@ sim_meta_2 = function(Mu,
 ) {
   
   
-  # collect arguments
+  # collect arguments to pass to sim_one_study_set
   .args = mget(names(formals()), sys.frame(sys.nframe()))
   # remove unnecessary args for sim_one_study_set
-  .args = .args[ !names(.args) %in% c("k.pub.nonaffirm", "prob.hacked", "true.sei.expr", "eta", "prob.conf", "SAS.type")]
+  .args = .args[ !names(.args) %in% c("k.pub.nonaffirm",
+                                      "prob.hacked",
+                                      "true.sei.expr",
+                                      "eta",
+                                      "prob.conf",
+                                      "SAS.type")]
   
   
   if ( hack == "no" ) stop("hack should not be 'no' for this fn")
@@ -1018,19 +1023,19 @@ make_one_draw = function(mui,  # mean for this study set
 # # look at autocorrelation of yi's (<rho because of SE>0)
 # acf(.d$yi, lag = 1)$acf
 
-# draw SE from Lodder distribution (with replacement)
-#  this assumes that Lodder dataset has already been read in (by doParallel)
-#  and there's global vector called "lodder.ses"
-draw_lodder_se = function() {
-  sample(x = lodder.ses,
-         size = 1, 
-         replace = TRUE)
-}
+# # draw SE from Lodder distribution (with replacement)
+# #  this assumes that Lodder dataset has already been read in (by doParallel)
+# #  and there's global vector called "lodder.ses"
+# draw_lodder_se = function() {
+#   sample(x = lodder.ses,
+#          size = 1, 
+#          replace = TRUE)
+# }
 
 
-# ~ Carter  pub bias mechanism ---------------------------------------------------------------
+# ~ Carter pub bias mechanism ---------------------------------------------------------------
 
-# https://osf.io/wnyhg
+# Hong & Reed's implementation: https://osf.io/wnyhg
 
 # clamp x to values between 0 and 1
 clamp <- function(x) {if (x > 1) x=1; if (x < 0) x = 0; return(x)}

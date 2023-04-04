@@ -349,14 +349,18 @@ doParallel.seconds = system.time({
     # ~ Simulate Dataset ------------------------------
     # includes unpublished studies
     d = sim_meta_2( Nmax = p$Nmax,
+                    true.dist = p$true.dist,
+                    true.sei.expr = p$true.sei.expr,
                     Mu = p$Mu,
                     t2a = p$t2a,
-                    m = p$m,
                     t2w = p$t2w,
-                    true.sei.expr = p$true.sei.expr,
+                    m = p$m,
+              
                     hack = p$hack,
                     rho = p$rho,
+                    prob.hacked = p$prob.hacked,
                     
+                    k.pub.nonaffirm = p$k.pub.nonaffirm,
                     eta = p$eta,
                     gamma = p$gamma,
                     SAS.type = p$SAS.type,
@@ -365,8 +369,6 @@ doParallel.seconds = system.time({
                     sig2B = p$sig2B,
                     prob.conf = p$prob.conf,
                     
-                    k.pub.nonaffirm = p$k.pub.nonaffirm,
-                    prob.hacked = p$prob.hacked,
                     return.only.published = FALSE)
     
     #mean(d$Ci)
@@ -375,7 +377,7 @@ doParallel.seconds = system.time({
     # sanity
     #View(d %>% select(yi, vi, pval, affirm, Di.across.prob))
     
-    # #@TEMP    
+    # # TEMP    
     # d %>% group_by(affirm) %>%
     #   summarise( mean(Fi), mean(Di.across))
     # 
@@ -783,7 +785,7 @@ doParallel.seconds = system.time({
                                   # which is only used for constructing weights
                                   meta.re = rma.uni( yi = dp$yi.adj.est,
                                                      vi = dp$vi)
-                                  t2hat.naive = meta.re$tau2  #@ could subtract off the sig2B here, but would also need to account for some studies' being unconfounded
+                                  t2hat.naive = meta.re$tau2  # could subtract off the sig2B here, but would also need to account for some studies' being unconfounded
                                   
                                   
                                   # fit weighted robust model
@@ -835,7 +837,7 @@ doParallel.seconds = system.time({
                                   # which is only used for constructing weights
                                   meta.re = rma.uni( yi = dp$yi.adj.est,
                                                      vi = dp$vi)
-                                  t2hat.naive = meta.re$tau2  #@ could subtract off the sig2B here, but would also need to account for some studies' being unconfounded
+                                  t2hat.naive = meta.re$tau2  # could subtract off the sig2B here, but would also need to account for some studies' being unconfounded
                                   
                                   
                                   # fit weighted robust model
@@ -921,7 +923,7 @@ doParallel.seconds = system.time({
                                   # which is only used for constructing weights
                                   meta.re = rma.uni( yi = dp$yi.adj.true,
                                                      vi = dp$vi)
-                                  t2hat.naive = meta.re$tau2  #@ could subtract off the sig2B here, but would also need to account for some studies' being unconfounded
+                                  t2hat.naive = meta.re$tau2  # could subtract off the sig2B here, but would also need to account for some studies' being unconfounded
                                   
                                   
                                   # fit weighted robust model
@@ -1126,10 +1128,10 @@ doParallel.seconds = system.time({
                                         # sanity checks for MhatB
                                         # E[Bi^* | Ci^* = 1], the target for MhatB:
                                         sancheck.MhatB = MhatB,
-                                        #@note: Di = 1 here is FAVORING indicator, so this is still the mean Bi among underlying (pre-SAS) estimates
+                                        # note: Fi = 1 here is FAVORING indicator, so this is still the mean Bi among underlying (pre-SAS) estimates
                                         # this is an underlying SAMPLE estimate of the truth; should approximately agree with MhatB and muB
-                                        sancheck.EBsti = ifelse( mean(d$Ci == 1 & d$Di == 1) > 0,
-                                                                 mean( d$Bi[ d$Ci == 1 & d$Di == 1] ),
+                                        sancheck.EBsti = ifelse( mean(d$Ci == 1 & d$Fi == 1) > 0,
+                                                                 mean( d$Bi[ d$Ci == 1 & d$Fi == 1] ),
                                                                  NA ),
                                         
                                         sancheck.shat2B = shat2B )

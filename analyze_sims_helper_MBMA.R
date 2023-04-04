@@ -16,7 +16,7 @@ make_agg_data = function( .s,
   # badCoverageCutoff = 0.85,
   # expected.sim.reps = NA
   
-  
+
   # make unique scenario variable, defined as scen.name AND method
   if ( !"unique.scen" %in% names(.s) ) .s$unique.scen = paste(.s$scen.name, .s$method)
   
@@ -135,6 +135,7 @@ make_agg_data = function( .s,
              "error",
              "rep.name",
              #"doParallel.seconds",
+             "overall.error",
              "optim.converged",
              "stan.warned",
              "job.name",
@@ -303,6 +304,9 @@ wrangle_agg_local = function(agg) {
   agg$method.pretty[ agg$method == c("beta-sm") ] = "Selection model (beta)"
   agg$method.pretty[ agg$method == c("mbma-MhatB") ] = "Proposed" 
   agg$method.pretty[ agg$method == c("mbma-Mhat-true-t2") ] = "MBMA (true t2)"
+  agg$method.pretty[ agg$method == c("mbma-MhatB-gamma") ] = "MBMA (gamma)"
+  
+  
   table(agg$method, agg$method.pretty)
   
   
@@ -324,7 +328,28 @@ wrangle_agg_local = function(agg) {
                                             .default = levels(agg$true.sei.expr) )
   print( table(agg$true.sei.expr, agg$true.sei.expr.pretty ) )
   
+  agg$true.dist = as.factor(agg$true.dist)
+  agg$true.dist.pretty = dplyr::recode( agg$true.dist,
+                                 "norm" = "Normal",
+                                 "expo" = "Exponential",
+                                 
+                                 # by default, retain original factor level
+                                 .default = levels(agg$true.dist) )
+  
+  
+  # agg$SAS.type = as.factor(agg$SAS.type)
+  # agg$SAS.type.pretty = dplyr::recode( agg$SAS.type,
+  #                                       "2psm" = "Step function",
+  #                                       "carter" = "Exponential",
+  #                                       
+  #                                       # by default, retain original factor level
+  #                                       .default = levels(agg$true.dist) )
+  
   agg$rho.pretty = paste("rho = ", agg$rho, sep = "")
+  
+  # indicator for whether SAS/SWS is such that MBMA (and all other methods) is correctly spec.
+  agg$evil.selection = 0
+  agg$evil.selection[ agg$prob.hacked > 0 | agg$SAS.type == "carter" ] = 1
   
   return(agg)
 }

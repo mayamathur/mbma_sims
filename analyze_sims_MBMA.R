@@ -51,20 +51,22 @@ code.dir = here()
 
 data.dir = str_replace( string = here(),
                         pattern = "Code",
-                        replacement = "Results/*2022-7-23 More scens for manuscript; add mbma-MhatB-true-t2" )
+                        replacement = "Results/temp" )
 
 
+# temp while sims are ongoing
+results.dir = data.dir
+# results.dir = str_replace( string = here(),
+#                            pattern = "Code",
+#                            replacement = "Results/*2022-7-23 More scens for manuscript; add mbma-MhatB-true-t2" )
 
-results.dir = str_replace( string = here(),
-                           pattern = "Code",
-                           replacement = "Results/*2022-7-23 More scens for manuscript; add mbma-MhatB-true-t2" )
 
-
-overleaf.dir.figs = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/figures/sims"
-
-# for stats_for_paper.csv
-# same dir as for applied examples so that they'll write to single file
-overleaf.dir.nums = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/R_objects"
+#@temp: commented out to avoid overwriting
+# overleaf.dir.figs = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/figures/sims"
+# 
+# # for stats_for_paper.csv
+# # same dir as for applied examples so that they'll write to single file
+# overleaf.dir.nums = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/R_objects"
 
 
 # # alternative for running new simulations
@@ -77,6 +79,30 @@ overleaf.dir.nums = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-ana
 setwd(code.dir)
 source("helper_MBMA.R")
 source("analyze_sims_helper_MBMA.R")
+
+
+# ~~ Temp only: check on sims in real time -------------------------
+
+setwd(data.dir)
+s = fread( "stitched.csv")
+# check when the dataset was last modified to make sure we're working with correct version
+file.info("stitched.csv")$mtime
+
+if ( "method.1" %in% names(s) ) s = s %>% select(-method.1)
+
+s %>% group_by(scen.name, method) %>%
+  summarise(n(),
+            mean(Mu),
+            meanNA(Mhat),
+            mean(is.na(Mhat)))
+
+agg = make_agg_data(s)
+
+agg = wrangle_agg_local(agg)
+
+table(agg$method.pretty)
+table(agg$evil.selection)
+
 
 
 # ~~ Get agg data -------------------------
@@ -116,7 +142,7 @@ init_var_names()
 # BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
 
 t = agg %>%
-  filter( method %in% c("naive", "mbma-MhatB", "2psm") ) %>%
+  filter( method %in% c("naive", "mbma-MhatB", "2psm", "beta-sm") ) %>%
   group_by(method) %>%
   summarise(BiasMin = min(MhatBias),
             BiasMd = median(MhatBias),
@@ -150,7 +176,7 @@ for ( .col in names(t)[ 2 : ncol(t) ] ) {
 Ynames = rev(MhatYNames)
 
 # alternatively, run just a subset:
-Ynames = c("MhatWidth", "MhatCover", "MhatBias")
+Ynames = c("MhatWidth", "MhatCover", "MhatBias", "MhatRMSE")
 
 # to help decide which vars to include in plot:
 param.vars.manip2

@@ -219,17 +219,17 @@ if ( run.local == TRUE ) {
     # within-study selection ratio; only used when hack=favor-gamma-ratio
     # important: other hacking methods will IGNORE gamma because can't be directly specified
     gamma = c(2), 
-    SAS.type = "carter",
+    SAS.type = "2psm", # "2psm" (original) or "carter"
     
-    true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
+    true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"), 
     
     # confounding parameters
-    # muB = 0.25,
-    # sig2B = 0.5,
-    # prob.conf = c(0.5),
-    muB = 0,
-    sig2B = 0,
-    prob.conf = 0,
+    muB = 0.25,
+    sig2B = 0.5,
+    prob.conf = c(0.5),
+    # muB = 0,
+    # sig2B = 0,
+    # prob.conf = 0,
     
     # Stan control args - only relevant if running RTMA
     stan.maxtreedepth = 25,
@@ -734,6 +734,11 @@ doParallel.seconds = system.time({
                                   mod = selmodel(x = naive,
                                                  type = "beta",
                                                  alternative = "two.sided")
+                                  
+                                  # make own error because selmodel will still return something
+                                  #  if it has the warning "error when trying to invert Hessian"
+                                  #  in which case there can be a point estimate with no SEs
+                                  if ( is.na(mod$b) | is.na(mod$se) ) stop("beta-sm didn't converge")
                                   
                                   
                                   # not returning any info about selection parameters because they

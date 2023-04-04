@@ -33,38 +33,40 @@ lapply( allPackages,
 #**you need to see all "TRUE" printed by this in order for the package to actually be loaded
 
 
-
-#@2023-04-02: add mbma-MhatB-gamma to methods :)
-
-### 2022-7-23 ###
+### 2022-7-23 - as in RSM_0 ###
 scen.params = tidyr::expand_grid(
   
-  rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-true-t2 ; maon-adj-MhatB ; 2psm",
+  rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; maon-adj-MhatB ; 2psm ; beta-sm",
   
   
   # args from sim_meta_2
   Nmax = 1,
-  Mu = c(0.5),
-  t2a = c(0, 0.25^2, 0.5^2), 
+  true.dist = c("expo", "norm"),
+  Mu = c(0, 0.5),
+  t2a = c(0, 0.25^2, 0.5^2),
   t2w = c(0),
   m = 50,
   
-  hack = c("affirm"),  # but there will not be any hacking since prob.hacked is 0
+  # SWS args
+  # remember: method affirm will only work if prob.hacked < 1 else will never have nonaffirms
+  hack = c("affirm2", "favor-lowest-p", "favor-gamma-ratio"),  
   rho = c(0),
   k.pub.nonaffirm = c(5, 10, 15, 30, 50),
-  # be careful about fractional values; might make overall eta hard to calculate 
-  prob.hacked = c(0),
+  prob.hacked = c(1, 0),
   
+  # SAS args
   eta = c(1, 5, 10),
-  gamma = 2,
+  gamma = 2,  # only used for method favor-gamma-ratio
+  SAS.type = c("2psm", "carter"), # "2psm" (original) or "carter"
   
-  true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
+  true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)",  # original setting close to empirical distribution
+                    "0.02 + rexp(n = 1, rate = 1)"),  # larger SEs overall
   
   # confounding parameters
   # NOT using log scale here b/c underlying data are continuous
-  muB = c(0.25, 0.5),
+  muB = c(0.1, 0.25, 0.5),
   sig2B = 0.5,
-  prob.conf = c(0.5), 
+  prob.conf = c(0.5),
   
   # Stan control args - only relevant if running RTMA - remove these args?
   stan.maxtreedepth = 25,
@@ -73,6 +75,45 @@ scen.params = tidyr::expand_grid(
   get.CIs = TRUE,
   run.optimx = FALSE )
 
+
+# ### 2022-7-23 - as in RSM_0 ###
+# scen.params = tidyr::expand_grid(
+#   
+#   rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-true-t2 ; maon-adj-MhatB ; 2psm",
+#   
+#   
+#   # args from sim_meta_2
+#   Nmax = 1,
+#   Mu = c(0.5),
+#   t2a = c(0, 0.25^2, 0.5^2), 
+#   t2w = c(0),
+#   m = 50,
+#   
+#   hack = c("affirm"),  # but there will not be any hacking since prob.hacked is 0
+#   rho = c(0),
+#   k.pub.nonaffirm = c(5, 10, 15, 30, 50),
+#   # be careful about fractional values; might make overall eta hard to calculate 
+#   prob.hacked = c(0),
+#   
+#   eta = c(1, 5, 10),
+#   gamma = 2,
+#   
+#   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
+#   
+#   # confounding parameters
+#   # NOT using log scale here b/c underlying data are continuous
+#   muB = c(0.25, 0.5),
+#   sig2B = 0.5,
+#   prob.conf = c(0.5), 
+#   
+#   # Stan control args - only relevant if running RTMA - remove these args?
+#   stan.maxtreedepth = 25,
+#   stan.adapt_delta = 0.995,
+#   
+#   get.CIs = TRUE,
+#   run.optimx = FALSE )
+
+#@update this?
 # if there are multiple hacking types, remove redundant combos
 # i.e., only need 1 hack type with p.hacked = 0
 first.hack.type = unique(scen.params$hack)[1]

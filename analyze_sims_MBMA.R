@@ -103,6 +103,24 @@ agg = wrangle_agg_local(agg)
 table(agg$method.pretty)
 table(agg$evil.selection)
 
+# which key scen params have run so far?
+library(tableone)
+param.vars.short = c(
+               "hack",
+               "k.pub.nonaffirm",
+               "prob.hacked",
+               
+               "eta",
+               "SAS.type",
+               
+               "true.sei.expr",
+               
+               "muB"
+               )
+
+CreateCatTable(vars = param.vars.short,
+               data = agg)
+
 
 
 # for after running sims

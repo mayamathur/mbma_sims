@@ -300,8 +300,8 @@ wrangle_agg_local = function(agg) {
   agg$method.pretty = NA
   agg$method.pretty[ agg$method == c("naive") ] = "Uncorrected"
   agg$method.pretty[ agg$method == c("maon-adj-MhatB") ] = "MAN adjusted"
-  agg$method.pretty[ agg$method == c("2psm") ] = "Selection model (step)"
-  agg$method.pretty[ agg$method == c("beta-sm") ] = "Selection model (beta)"
+  agg$method.pretty[ agg$method == c("2psm") ] = "SM (step)"
+  agg$method.pretty[ agg$method == c("beta-sm") ] = "SM (beta)"
   agg$method.pretty[ agg$method == c("mbma-MhatB") ] = "Proposed" 
   agg$method.pretty[ agg$method == c("mbma-Mhat-true-t2") ] = "MBMA (true t2)"
   agg$method.pretty[ agg$method == c("mbma-MhatB-gamma") ] = "MBMA (gamma)"
@@ -354,6 +354,72 @@ wrangle_agg_local = function(agg) {
   return(agg)
 }
 
+
+
+# RESULTS TABLES FNS -------------------------------------------------------------
+
+make_winner_table_col = function(.agg,
+                                 yName,
+                                 methods = c("naive", "mbma-MhatB", "2psm", "beta-sm"),
+                                 summarise.fun.name = "mean",
+                                 digits = 2) {
+  
+  .agg$Y = .agg[[yName]]
+  
+  higherBetterYNames = "MhatCover"
+  lowerBetterYNames = c("MhatBias", "MhatRMSE", "MhatWidth", "MhatEstFail")
+  
+  if ( summarise.fun.name == "mean" ) {
+    t = .agg %>% filter(method %in% methods) %>%
+      group_by(method.pretty) %>%
+      summarise( Y = round( mean(Y), digits = digits ) )
+  }
+  
+  if ( summarise.fun.name == "worst10th" & yName %in% higherBetterYNames ) {
+    t = .agg %>% filter(method %in% methods) %>%
+      group_by(method.pretty) %>%
+      summarise( Y = round( quantile(Y, probs = 0.10), digits = digits ) )
+  }
+  
+  if ( summarise.fun.name == "worst10th" & yName %in% lowerBetterYNames ) {
+    t = .agg %>% filter(method %in% methods) %>%
+      group_by(method.pretty) %>%
+      summarise( Y = round( quantile(Y, probs = 0.90), digits = digits ) )
+  }
+  
+  
+  # sort best to worst
+  if ( yName %in% lowerBetterYNames ) {
+    t = t %>% arrange(Y)
+  }
+  
+  
+  if ( yName %in% higherBetterYNames ) {
+    t = t %>% arrange( desc(Y) )
+  }
+  
+  names(t) = c(yName, summarise.fun.name)
+  t
+}
+
+
+
+make_winner_table = function( .agg,
+                              .yNames = c("MhatBias", "MhatRMSE", "MhatCover", "MhatWidth", "MhatEstFail"),
+                              summarise.fun.name ){
+  
+  for ( .yName in .yNames ){
+    newCol = make_winner_table_col(.agg = .agg,
+                                   yName = .yName,
+                                   summarise.fun.name = summarise.fun.name )
+    
+    if ( .yName == .yNames[1] ) t.all = newCol else t.all = bind_cols(t.all, newCol)
+  }
+  
+  
+  t.all
+  
+}
 
 
 # PLOTTING FNS -------------------------------------------------------------

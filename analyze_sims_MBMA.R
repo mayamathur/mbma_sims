@@ -105,31 +105,32 @@ table(agg$evil.selection)
 
 
 
-# ~~ Get agg data -------------------------
-
-# if only analyzing a single set of sims (no merging):
-setwd(data.dir)
-agg = fread( "agg.csv")
-# check when the dataset was last modified to make sure we're working with correct version
-file.info("agg.csv")$mtime
-
-
-dim(agg)  # will exceed number of scens because of multiple methods
-expect_equal( 90, nuni(agg$scen.name) )
-
-# prettify variable names
-agg = wrangle_agg_local(agg)
-table(agg$method.pretty)
-
-# look at number of actual sim reps
-table(agg$sim.reps.actual)
-
-
-# one-off for paper
-update_result_csv( name = "n scens",
-                   value = nuni(agg$scen.name),
-                   .results.dir = results.dir,
-                   .overleaf.dir = overleaf.dir.nums )
+# for after running sims
+# # ~~ Get agg data -------------------------
+# 
+# # if only analyzing a single set of sims (no merging):
+# setwd(data.dir)
+# agg = fread( "agg.csv")
+# # check when the dataset was last modified to make sure we're working with correct version
+# file.info("agg.csv")$mtime
+# 
+# 
+# dim(agg)  # will exceed number of scens because of multiple methods
+# expect_equal( 90, nuni(agg$scen.name) )
+# 
+# # prettify variable names
+# agg = wrangle_agg_local(agg)
+# table(agg$method.pretty)
+# 
+# # look at number of actual sim reps
+# table(agg$sim.reps.actual)
+# 
+# 
+# # one-off for paper
+# update_result_csv( name = "n scens",
+#                    value = nuni(agg$scen.name),
+#                    .results.dir = results.dir,
+#                    .overleaf.dir = overleaf.dir.nums )
 
 
 # ~~ List variable names -------------------------
@@ -147,6 +148,8 @@ t = agg %>%
   summarise(BiasMin = min(MhatBias),
             BiasMd = median(MhatBias),
             BiasMax = max(MhatBias),
+            
+            MhatEstFail = median(MhatEstFail),
             
             #*express coverage as percent
             CoverMin = 100*min(MhatCover),
@@ -169,6 +172,31 @@ for ( .col in names(t)[ 2 : ncol(t) ] ) {
 }
 
 
+# ******** RANKED PERFORMANCE TABLES -------------------------
+
+# all scenarios
+( t1.mn = make_winner_table(.agg = agg,
+                       summarise.fun.name = "mean" ) )
+( t1.worst = make_winner_table(.agg = agg,
+                          summarise.fun.name = "worst10th" ) )
+
+
+# no SWS
+temp = agg %>% filter(prob.hacked == 0); dim(temp)
+( t1.mn = make_winner_table(.agg = temp,
+                            summarise.fun.name = "mean" ) )
+( t1.worst = make_winner_table(.agg = temp,
+                               summarise.fun.name = "worst10th" ) )
+
+
+# skewed effects
+temp = agg %>% filter(true.dist == "expo"); dim(temp)
+( t1.mn = make_winner_table(.agg = temp,
+                            summarise.fun.name = "mean" ) )
+( t1.worst = make_winner_table(.agg = temp,
+                               summarise.fun.name = "worst10th" ) )
+
+# later (not run yet): evil.selection == 1 or == 0
 
 
 # ******** PLOTS (BIG AND NOT PRETTIFIED) -------------------------

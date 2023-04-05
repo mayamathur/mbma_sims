@@ -128,8 +128,8 @@ make_agg_data = function( .s,
   
   #names(.s)[ !names(.s) %in% param.vars ]  # look at names of vars that need categorizing
   
-  s$V = s$t2a + s$t2w
-  s$S = sqrt(s$t2a + s$t2w)
+  .s$V = .s$t2a + .s$t2w
+  .s$S = sqrt(.s$t2a + .s$t2w)
   
   toDrop = c("rep.methods",
              "get.CIs",

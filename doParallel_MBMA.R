@@ -108,6 +108,7 @@ if (run.local == FALSE) {
   path = "/home/groups/manishad/MBMA"
   setwd(path)
   source("helper_MBMA.R")
+  source("analyze_sims_helper_MBMA.R")  # for make_agg_data
   
   # ~~ Cluster Run ----------------------------------------
   
@@ -176,7 +177,7 @@ if (run.local == FALSE) {
   # for that I did sim.reps = 100 per doParallel
   
   # simulation reps per scenario
-  if ( interactive.cluster.run == FALSE ) sim.reps = 500  # with 5 sim.reps, takes about 1 min per doParallel, so 500 reps will take 8.3 hrs
+  if ( interactive.cluster.run == FALSE ) sim.reps = 2  # with 5 sim.reps, takes about 1 min per doParallel, so 500 reps will take 8.3 hrs
   if ( interactive.cluster.run == TRUE ) sim.reps = 1  
   
   # set the number of cores
@@ -1286,10 +1287,23 @@ doParallel.seconds = system.time({
 
 
 
+# temp debugging
+cat( paste("\n\ndoParallel flag. str(rs):", str(rs) ) )
+
+cat( paste("\ndoParallel flag. head(rs):" ) )
+print(head(rs))
+
+cat( paste("\n\ndoParallel flag. dim(rs):", dim(rs) ) )
+
+
+
 # ~~ End of ForEach Loop ----------------
 # estimated time for 1 simulation rep
 # use NAs for additional methods so that the SUM of the rep times will be the
 #  total computational time
+
+
+# @temp: avoid this part
 nMethods = length( unique(rs$method) )
 
 print(nMethods)
@@ -1302,8 +1316,8 @@ rs$doParallel.seconds = doParallel.seconds
 
 
 # temp debugging
-cat( paste("\ndoParallel flag. head(rs):", head(rs) ) )
-
+cat( paste("\ndoParallel flag. head(rs):" ) )
+print(head(rs))
 
 # rs$rep.seconds = doParallel.seconds/(sim.reps * length(scens.to.run))
 # rs$rep.seconds[ rs$method != unique(rs$method)[1] ] = NA
@@ -1360,9 +1374,20 @@ if ( run.local == TRUE ) {
 
 
 
-# ~ WRITE LONG RESULTS ------------------------------
+# ~ WRITE LONG AND SHORT RESULTS ------------------------------
 if ( run.local == FALSE ) {
   cat("\n\n doParallel flag: about to write results \n")
   setwd("/home/groups/manishad/MBMA/long_results")
   fwrite( rs, paste( "long_results", jobname, ".csv", sep="_" ) )
+  cat("\n\n doParallel flag: done writing results \n")
+  
+  
+  
+  # pre-aggregate 
+  #@later would make more sense to change it to short_results
+  agg_job = make_agg_data(rs)
+  setwd("/home/groups/manishad/MBMA/short_results")
+  fwrite( rs, paste( "short_results", jobname, ".csv", sep="_" ) )
+  
+  
 }

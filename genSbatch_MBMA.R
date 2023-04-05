@@ -34,10 +34,11 @@ lapply( allPackages,
 #**you need to see all "TRUE" printed by this in order for the package to actually be loaded
 
 
-### 2022-7-23 ###
+### 2022-7-23 - debugging set ###
 scen.params = tidyr::expand_grid(
   
-  rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; maon-adj-MhatB ; 2psm ; beta-sm",
+  #@FEWER METHODS
+  rep.methods = "naive ; mbma-MhatB",
   
   
   # args from sim_meta_2
@@ -62,7 +63,7 @@ scen.params = tidyr::expand_grid(
   gamma = 2,  # only used for method favor-gamma-ratio
   SAS.type = c("2psm", "carter"), # "2psm" (original) or "carter"
   
-
+  
   
   # confounding parameters
   # NOT using log scale here b/c underlying data are continuous
@@ -76,6 +77,50 @@ scen.params = tidyr::expand_grid(
   
   get.CIs = TRUE,
   run.optimx = FALSE )
+
+
+# ### 2022-7-23 - full set ###
+# scen.params = tidyr::expand_grid(
+#   
+#   rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; maon-adj-MhatB ; 2psm ; beta-sm",
+#   
+#   
+#   # args from sim_meta_2
+#   Nmax = 5,  # later code will set this to 1 if prob.hacked = 0
+#   true.dist = c("expo", "norm"),
+#   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)",  # original setting close to empirical distribution
+#                     "0.02 + rexp(n = 1, rate = 1)"),  # larger SEs overall
+#   Mu = c(0, 0.5),
+#   t2a = c(0, 0.25^2, 0.5^2),
+#   t2w = c(0),
+#   m = 50,
+#   
+#   # SWS args
+#   # remember: method affirm will only work if prob.hacked < 1 else will never have nonaffirms
+#   hack = c("affirm2", "favor-lowest-p", "favor-gamma-ratio"),  
+#   rho = c(0),
+#   prob.hacked = c(1, 0),
+#   
+#   # SAS args
+#   k.pub.nonaffirm = c(5, 10, 15, 30, 50),
+#   eta = c(1, 5, 10),
+#   gamma = 2,  # only used for method favor-gamma-ratio
+#   SAS.type = c("2psm", "carter"), # "2psm" (original) or "carter"
+#   
+# 
+#   
+#   # confounding parameters
+#   # NOT using log scale here b/c underlying data are continuous
+#   muB = c(0.1, 0.25, 0.5),
+#   sig2B = 0.5,
+#   prob.conf = c(0.5),
+#   
+#   # Stan control args - only relevant if running RTMA - remove these args?
+#   stan.maxtreedepth = 25,
+#   stan.adapt_delta = 0.995,
+#   
+#   get.CIs = TRUE,
+#   run.optimx = FALSE )
 
 
 # ### 2022-7-23 - as in RSM_0 ###
@@ -178,7 +223,7 @@ sbatch_params <- data.frame(jobname,
                             errorfile,
                             # (2022-6-19 with RTMA had used 2:00 and 200 reps.in.doParallel)
                             #  for RSM_0 sims without RTMA and with 2000 reps.in.doParallel, used 00:30:00
-                            jobtime = "10:00:00",  
+                            jobtime = "01:00:00",  
                             quality = "normal",
                             node_number = 1,
                             mem_per_node = 64000,
@@ -199,7 +244,7 @@ n.files
 # run just the first one
 # sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
 # possible locations for error file:
-# home/users/mmathur
+# /home/users/mmathur
 # /home/groups/manishad/MBMA/sbatch_files
 
 # 2023-04-05: 1,080

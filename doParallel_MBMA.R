@@ -177,7 +177,7 @@ if (run.local == FALSE) {
   # for that I did sim.reps = 100 per doParallel
   
   # simulation reps per scenario
-  if ( interactive.cluster.run == FALSE ) sim.reps = 2  # with 5 sim.reps, takes about 1 min per doParallel, so 500 reps will take 8.3 hrs
+  if ( interactive.cluster.run == FALSE ) sim.reps = 100  # with 5 sim.reps, takes about 1 min per doParallel, so 500 reps will take 8.3 hrs
   if ( interactive.cluster.run == TRUE ) sim.reps = 1  
   
   # set the number of cores

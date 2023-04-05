@@ -66,18 +66,6 @@ if ( run.local == TRUE | interactive.cluster.run == TRUE ) toLoad = c(toLoad, "h
 # ~~ Cluster Run ----------------------------------------
 if (run.local == FALSE) {
   
-  # load command line arguments
-  args = commandArgs(trailingOnly = TRUE)
-  
-  cat("\n\n args received from sbatch file:", args)
-  
-  jobname = args[1]
-  
-  #scen = args[2]
-  scens.to.run = as.numeric( unlist(str_split(args[2], pattern=",")) )  # this will be a string like "1,2,3,4"
-  
-  cat("\n\n Parsed scenarios:", scens.to.run)
-  
   # load packages with informative messages if one can't be installed
   # **Common reason to get the "could not library" error: You did ml load R/XXX using an old version
   any.failed = FALSE
@@ -97,6 +85,25 @@ if (run.local == FALSE) {
   }
   if ( any.failed == TRUE ) stop("Some packages couldn't be installed. See outfile for details of which ones.")
   
+  # load command line arguments (must be after loading packages)
+  args = commandArgs(trailingOnly = TRUE)
+  cat("\n\n args received from sbatch file:", args)
+  jobname = args[1]
+  #scen = args[2]
+  
+  # DEBUGGING ONLY
+  cat(args[2])
+  cat( mode(args[2]) )
+  
+
+  # alt: avoid stringr::str_split becuase it gives weird error on cluster
+  scens.to.run = unlist(strsplit(paste0(args[2], ","), ",")) # this will be a string like "1,2,3,4"
+
+  
+  cat("\n\n Parsed scenarios:", scens.to.run)
+  
+  
+  
   # helper code
   path = "/home/groups/manishad/MBMA"
   setwd(path)
@@ -108,10 +115,11 @@ if (run.local == FALSE) {
     # get scen parameters (made by genSbatch.R)
     setwd(path)
     scen.params = read.csv( "scen_params.csv" )
-    p <<- scen.params[ scen.params$scen == scen, ]
-    
-    cat("\n\nHEAD OF ENTIRE SCEN.PARAMS:\n")
-    print(p)
+    #bm: will this cause error about not finding p later?
+    # p <<- scen.params[ scen.params$scen == scen, ]
+    # 
+    # cat("\n\nHEAD OF ENTIRE SCEN.PARAMS:\n")
+    # print(p)
   }
   
   # ~~ Interactive Cluster Run ----------------------------------------
@@ -1294,14 +1302,14 @@ print(nrow(rs))
 rs$doParallel.seconds = doParallel.seconds
 
 
-rs$rep.seconds = doParallel.seconds/sim.reps
-rs$rep.seconds[ rs$method != unique(rs$method)[1] ] = NA
-
-#rs$rep.seconds = rep( c( doParallel.seconds / sim.reps,
-#                         rep( NA, nMethods - 1 ) ), sim.reps )
-
-expect_equal( as.numeric( sum(rs$rep.seconds, na.rm = TRUE) ),
-              as.numeric(doParallel.seconds) )
+# rs$rep.seconds = doParallel.seconds/(sim.reps * length(scens.to.run))
+# rs$rep.seconds[ rs$method != unique(rs$method)[1] ] = NA
+# 
+# #rs$rep.seconds = rep( c( doParallel.seconds / sim.reps,
+# #                         rep( NA, nMethods - 1 ) ), sim.reps )
+# 
+# expect_equal( as.numeric( sum(rs$rep.seconds, na.rm = TRUE) ),
+#               as.numeric(doParallel.seconds) )
 
 
 

@@ -87,5 +87,6 @@ rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MB
   # delete "rm" files
   rm /home/users/mmathur/rm_*
   rm /home/groups/manishad/MBMA/sbatch_files/rm_*
+  rm /home/groups/manishad/MBMA/rm_*
   
   

@@ -198,6 +198,9 @@ n.files
 
 # run just the first one
 # sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
+# possible locations for error file:
+# home/users/mmathur
+# /home/groups/manishad/MBMA/sbatch_files
 
 # 2023-04-04: 8640
 path = "/home/groups/manishad/MBMA"

@@ -178,7 +178,7 @@ sbatch_params <- data.frame(jobname,
                             errorfile,
                             # (2022-6-19 with RTMA had used 2:00 and 200 reps.in.doParallel)
                             #  for RSM_0 sims without RTMA and with 2000 reps.in.doParallel, used 00:30:00
-                            jobtime = "01:00:00",  
+                            jobtime = "10:00:00",  
                             quality = "normal",
                             node_number = 1,
                             mem_per_node = 64000,
@@ -202,10 +202,10 @@ n.files
 # home/users/mmathur
 # /home/groups/manishad/MBMA/sbatch_files
 
-# 2023-04-04: 8640
+# 2023-04-05: 1,080
 path = "/home/groups/manishad/MBMA"
 setwd( paste(path, "/sbatch_files", sep="") )
-for (i in 2:1000) {
+for (i in 1:1000) {
   system( paste("sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/", i, ".sbatch", sep="") )
 }
 

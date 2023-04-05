@@ -175,9 +175,8 @@ if (run.local == FALSE) {
   # locally, with total k = 100, Nmax = 10, and sim.reps = 250, took 93 min total
   # for that I did sim.reps = 100 per doParallel
   
-  # simulation reps to run within this job
-  # **this need to match n.reps.in.doParallel in the genSbatch script
-  if ( interactive.cluster.run == FALSE ) sim.reps = 5
+  # simulation reps per scenario
+  if ( interactive.cluster.run == FALSE ) sim.reps = 500  # with 5 sim.reps, takes about 1 min per doParallel, so 500 reps will take 8.3 hrs
   if ( interactive.cluster.run == TRUE ) sim.reps = 1  
   
   # set the number of cores

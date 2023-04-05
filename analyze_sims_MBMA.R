@@ -84,21 +84,23 @@ source("analyze_sims_helper_MBMA.R")
 # ~~ Temp only: check on sims in real time -------------------------
 
 setwd(data.dir)
-s = fread( "stitched.csv")
-# check when the dataset was last modified to make sure we're working with correct version
-file.info("stitched.csv")$mtime
+aggo = fread("agg.csv")
 
-if ( "method.1" %in% names(s) ) s = s %>% select(-method.1)
+# # for working with stitched directly
+# s = fread( "stitched.csv")
+# # check when the dataset was last modified to make sure we're working with correct version
+# file.info("stitched.csv")$mtime
+# 
+# if ( "method.1" %in% names(s) ) s = s %>% select(-method.1)
+# 
+# s %>% group_by(scen.name, method) %>%
+#   summarise(n(),
+#             mean(Mu),
+#             meanNA(Mhat),
+#             mean(is.na(Mhat)))
+# agg = make_agg_data(s)
 
-s %>% group_by(scen.name, method) %>%
-  summarise(n(),
-            mean(Mu),
-            meanNA(Mhat),
-            mean(is.na(Mhat)))
-
-agg = make_agg_data(s)
-
-agg = wrangle_agg_local(agg)
+agg = wrangle_agg_local(aggo)
 
 table(agg$method.pretty)
 table(agg$evil.selection)

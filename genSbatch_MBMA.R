@@ -17,6 +17,7 @@ allPackages = c("here",
                 "testthat",
                 "truncdist",
                 "gmm",
+                "stringr",
                 "tmvtnorm",
                 "doParallel",
                 "foreach")
@@ -148,14 +149,24 @@ write.csv( scen.params, "scen_params.csv", row.names = FALSE )
 source("helper_MBMA.R")
 
 # number of sbatches to generate (i.e., iterations within each scenario)
-n.reps.per.scen = 1000
-n.reps.in.doParallel = 1000  
-( n.files = ( n.reps.per.scen / n.reps.in.doParallel ) * n.scen )
+# n.reps.per.scen = 1000
+#n.reps.in.doParallel = 1000
+#( n.files = ( n.reps.per.scen / n.reps.in.doParallel ) * n.scen )
+
+# sim.reps is now set only within doParallel
+n.scens.per.doParallel = 8
+( n.files = n.scen / n.scens.per.doParallel )
 
 
 path = "/home/groups/manishad/MBMA"
 
-scen.name = rep( scen.params$scen, each = ( n.files / n.scen ) )
+#scen.name = rep( scen.params$scen, each = ( n.files / n.scen ) )
+# group scenarios so each sbatch can receive multiple scen names (as a single string)
+scen.name = group_scens(x = scen.params$scen,
+                           n = n.scens.per.doParallel)
+
+expect_equal( length(scen.name), n.files )
+
 jobname = paste("job", 1:n.files, sep="_")
 outfile = paste("rm_", 1:n.files, ".out", sep="")
 errorfile = paste("rm_", 1:n.files, ".err", sep="")

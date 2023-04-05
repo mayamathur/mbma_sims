@@ -1464,6 +1464,27 @@ sbatch_not_run = function(.results.singles.path,
   
 }
 
+
+# for running multiple scens in each doParallel 
+group_scens <- function(x, n) {
+  # Calculate the number of groups
+  num_groups <- ceiling(length(x) / n)
+  
+  # Split the vector into groups of length n
+  groups <- split(x, rep(1:num_groups, each=n, length.out=length(x)))
+  
+  # Combine the groups into strings
+  strings <- sapply(groups, function(group) {
+    paste0(group, collapse=",")
+  })
+  
+  return( as.vector(strings) )
+}
+
+# x <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+# group_scens(x, 5)
+
+
 # FN: STITCH RESULTS FILES -------------------------------------
 
 # given a folder path for results and a common beginning of file name of results files

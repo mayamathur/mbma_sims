@@ -1301,6 +1301,10 @@ print(nrow(rs))
 rs$doParallel.seconds = doParallel.seconds
 
 
+# temp debugging
+cat( paste("\ndoParallel flag. head(rs):", head(rs) ) )
+
+
 # rs$rep.seconds = doParallel.seconds/(sim.reps * length(scens.to.run))
 # rs$rep.seconds[ rs$method != unique(rs$method)[1] ] = NA
 # 
@@ -1358,6 +1362,7 @@ if ( run.local == TRUE ) {
 
 # ~ WRITE LONG RESULTS ------------------------------
 if ( run.local == FALSE ) {
+  cat("\n\n doParallel flag: about to write results \n")
   setwd("/home/groups/manishad/MBMA/long_results")
   fwrite( rs, paste( "long_results", jobname, ".csv", sep="_" ) )
 }

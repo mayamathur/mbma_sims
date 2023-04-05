@@ -160,7 +160,7 @@ CreateCatTable(vars = param.vars.short,
 init_var_names()
 
 
-# BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
+# *** BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
 
 t = agg %>%
   filter( method %in% c("naive", "mbma-MhatB", "2psm", "beta-sm") ) %>%

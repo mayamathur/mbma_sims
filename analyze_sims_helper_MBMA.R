@@ -36,6 +36,7 @@ make_agg_data = function( .s,
     ##### variables to be created in mutate below:
     
     "MhatBias",
+    "MhatAbsBias",
     "ShatBias",
     
     # "MhatRelBias",
@@ -177,6 +178,7 @@ make_agg_data = function( .s,
             
             # varies within scenario
             MhatBias = Mhat - Mu,
+            MhatAbsBias = abs(Mhat - Mu),
             ShatBias = Shat - S,
             
             # varies within scenario
@@ -367,7 +369,8 @@ make_winner_table_col = function(.agg,
   .agg$Y = .agg[[yName]]
   
   higherBetterYNames = "MhatCover"
-  lowerBetterYNames = c("MhatBias", "MhatRMSE", "MhatWidth", "MhatEstFail")
+  
+  lowerBetterYNames = c("MhatAbsBias", "MhatRMSE", "MhatWidth", "MhatEstFail")
   
   if ( summarise.fun.name == "mean" ) {
     t = .agg %>% filter(method %in% methods) %>%

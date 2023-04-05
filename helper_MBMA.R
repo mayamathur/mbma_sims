@@ -1267,7 +1267,7 @@ sbatch_skeleton <- function() {
 #SBATCH --qos=QUALITY
 #################
 #submit to both owners and normal partition
-#SBATCH -p normal,owners
+#SBATCH -p normal,owners,qsu
 #################
 #number of nodes you are requesting
 #SBATCH --nodes=NODENUMBER

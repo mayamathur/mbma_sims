@@ -40,7 +40,7 @@ scen.params = tidyr::expand_grid(
   
   
   # args from sim_meta_2
-  Nmax = 5,  # later code will set this to 1 for unhacked studies
+  Nmax = 5,  # later code will set this to 1 if prob.hacked = 0
   true.dist = c("expo", "norm"),
   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)",  # original setting close to empirical distribution
                     "0.02 + rexp(n = 1, rate = 1)"),  # larger SEs overall

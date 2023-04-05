@@ -102,11 +102,11 @@ s = s %>% filter(!is.na(scen.name))
 
 # ~ Quick Sanity Check  ---------------------------
 
-s %>% group_by(scen.name, method) %>%
-  summarise(n(),
-            mean(Mu),
-            meanNA(Mhat),
-            mean(is.na(Mhat)))
+# s %>% group_by(scen.name, method) %>%
+#   summarise(n(),
+#             mean(Mu),
+#             meanNA(Mhat),
+#             mean(is.na(Mhat)))
 
 # ~ Write stitched.csv ---------------------------
 
@@ -136,7 +136,7 @@ setwd(.results.stitched.write.path)
 fwrite(agg, "agg.csv")
 
 
-table(agg$method.pretty)
+# table(agg$method.pretty)
 
 cat("\n\n nrow(agg) =", nrow(agg))
 cat("\n nuni(agg$scen.name) =", nuni(agg$scen.name) )
@@ -154,16 +154,16 @@ cat("\n nuni(agg$scen.name) =", nuni(agg$scen.name) )
 
 
 
-# look again at failures
-t = agg %>% group_by(k.pub.nonaffirm, method) %>%
-  summarise( mean(MhatEstFail),
-             mean(MhatCIFail)
-             )
-as.data.frame(t)
-
-
-# errors of 2PSM when it fails
-table( s$overall.error[ s$method == "2psm" & is.na(s$Mhat) ] )
+# # look again at failures
+# t = agg %>% group_by(k.pub.nonaffirm, method) %>%
+#   summarise( mean(MhatEstFail),
+#              mean(MhatCIFail)
+#              )
+# as.data.frame(t)
+# 
+# 
+# # errors of 2PSM when it fails
+# table( s$overall.error[ s$method == "2psm" & is.na(s$Mhat) ] )
 
 
 
@@ -174,19 +174,23 @@ table( s$overall.error[ s$method == "2psm" & is.na(s$Mhat) ] )
 
 # LOOK FOR MISSED JOBS ----------------------------------------------
 
-path = "/home/groups/manishad/MBMA"
-setwd(path)
-source("helper_MBMA.R")
-source("analyze_sims_helper_MBMA.R")
 
-# look for missed jobs
-missed.nums = sbatch_not_run( "/home/groups/manishad/MBMA/long_results",
-                              "/home/groups/manishad/MBMA/long_results",
-                              .name.prefix = "long",
-                              .max.sbatch.num = 90)
-
-setwd( paste(path, "/sbatch_files", sep="") )
-for (i in missed.nums) {
-  system( paste("sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/", i, ".sbatch", sep="") )
+if (FALSE) {
+  path = "/home/groups/manishad/MBMA"
+  setwd(path)
+  source("helper_MBMA.R")
+  source("analyze_sims_helper_MBMA.R")
+  
+  # look for missed jobs
+  missed.nums = sbatch_not_run( "/home/groups/manishad/MBMA/long_results",
+                                "/home/groups/manishad/MBMA/long_results",
+                                .name.prefix = "long",
+                                .max.sbatch.num = 90)
+  
+  setwd( paste(path, "/sbatch_files", sep="") )
+  for (i in missed.nums) {
+    system( paste("sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/", i, ".sbatch", sep="") )
+  }
 }
+
 

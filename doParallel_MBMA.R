@@ -71,6 +71,7 @@ if (run.local == FALSE) {
   cat("\n\n args received from sbatch file:", args)
   
   jobname = args[1]
+  #bm
   scen = args[2]  # this will be a number
   
   # load packages with informative messages if one can't be installed

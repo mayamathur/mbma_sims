@@ -81,6 +81,10 @@ rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MB
   mkdir /home/groups/manishad/MBMA/empty_dir
 rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MBMA/long_results/
   
+  
+  # DELETE ALL SHORT RESULTS
+rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MBMA/short_results/
+  
   # delete stitched results
   rm /home/groups/manishad/MBMA/overall_stitched/*
   

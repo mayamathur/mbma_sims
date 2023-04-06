@@ -34,9 +34,8 @@ sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
 sacct1
 
 
-cd /home/groups/manishad/MBMA/long_results
-less /home/groups/manishad/MBMA/long_results/
-less /home/groups/manishad/MBMA/short_results/
+less /home/groups/manishad/MBMA/long_results/long_results_job_1_.csv
+less /home/groups/manishad/MBMA/short_results/short_results_job_1_.csv
 
 # clean up (retain sbatches)
 rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MBMA/long_results/

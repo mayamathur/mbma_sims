@@ -199,7 +199,7 @@ source("helper_MBMA.R")
 #( n.files = ( n.reps.per.scen / n.reps.in.doParallel ) * n.scen )
 
 # sim.reps is now set only within doParallel
-n.scens.per.doParallel = 8
+n.scens.per.doParallel = 10  # doesn't need to be set inside doParallel
 ( n.files = n.scen / n.scens.per.doParallel )
 
 
@@ -221,9 +221,8 @@ runfile_path = paste(path, "/testRunFile.R", sep="")
 sbatch_params <- data.frame(jobname,
                             outfile,
                             errorfile,
-                            # (2022-6-19 with RTMA had used 2:00 and 200 reps.in.doParallel)
-                            #  for RSM_0 sims without RTMA and with 2000 reps.in.doParallel, used 00:30:00
-                            jobtime = "3:00:00",  
+                            #  for k.pub.nonaffirm = 5 with 1000 sim.reps and 8 scens in doParallel, takes 50 min
+                            jobtime = "5:00:00",  
                             quality = "normal",
                             node_number = 1,
                             mem_per_node = 64000,
@@ -246,7 +245,7 @@ n.files
 # run just the first one
 # sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
 
-# 2023-04-05: 1,080
+# 2023-04-06: 864
 path = "/home/groups/manishad/MBMA"
 setwd( paste(path, "/sbatch_files", sep="") )
 for (i in 1:1000) {

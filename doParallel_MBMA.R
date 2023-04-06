@@ -1336,6 +1336,8 @@ doParallel.seconds = system.time({
     
     if ( scen == scens.to.run[1] ) {
       cat( paste("\n\ndoParallel flag: IF"))
+      # MUST be superassignment or else rs won't exist at the end
+      #  not sure why since this is in for-loop rather than for-each
       rs <<- new_rs
     } else {
       cat( paste("\n\ndoParallel flag: ELSE"))

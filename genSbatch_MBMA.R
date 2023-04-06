@@ -223,7 +223,7 @@ sbatch_params <- data.frame(jobname,
                             errorfile,
                             # (2022-6-19 with RTMA had used 2:00 and 200 reps.in.doParallel)
                             #  for RSM_0 sims without RTMA and with 2000 reps.in.doParallel, used 00:30:00
-                            jobtime = "1:00:00",  
+                            jobtime = "3:00:00",  
                             quality = "normal",
                             node_number = 1,
                             mem_per_node = 64000,
@@ -238,16 +238,13 @@ sbatch_params <- data.frame(jobname,
                             server_sbatch_path = NA)
 
 #@temp: only keep one of them
-sbatch_params = sbatch_params[1,]
+#sbatch_params = sbatch_params[1,]
 generateSbatch(sbatch_params, runfile_path)
 
 n.files
 
 # run just the first one
 # sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
-# possible locations for error file:
-# /home/users/mmathur
-# /home/groups/manishad/MBMA/sbatch_files
 
 # 2023-04-05: 1,080
 path = "/home/groups/manishad/MBMA"

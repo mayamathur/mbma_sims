@@ -37,8 +37,7 @@ lapply( allPackages,
 ### 2022-7-23 - debugging set ###
 scen.params = tidyr::expand_grid(
   
-  #@FEWER METHODS
-  rep.methods = "naive ; mbma-MhatB",
+  rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; maon-adj-MhatB ; 2psm ; beta-sm",
   
   
   # args from sim_meta_2

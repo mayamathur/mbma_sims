@@ -370,7 +370,7 @@ make_winner_table_col = function(.agg,
   
   higherBetterYNames = "MhatCover"
   
-  lowerBetterYNames = c("MhatAbsBias", "MhatRMSE", "MhatWidth", "MhatEstFail")
+  lowerBetterYNames = c("MhatBias", "MhatAbsBias", "MhatRMSE", "MhatWidth", "MhatEstFail")
   
   if ( summarise.fun.name == "mean" ) {
     t = .agg %>% filter(method %in% methods) %>%
@@ -408,7 +408,7 @@ make_winner_table_col = function(.agg,
 
 
 make_winner_table = function( .agg,
-                              .yNames = c("MhatBias", "MhatRMSE", "MhatCover", "MhatWidth", "MhatEstFail"),
+                              .yNames = c("MhatAbsBias", "MhatRMSE", "MhatCover", "MhatWidth", "MhatEstFail"),
                               summarise.fun.name ){
   
   for ( .yName in .yNames ){

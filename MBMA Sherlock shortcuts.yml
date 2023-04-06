@@ -9,8 +9,22 @@ S.cyril381
 # jump down: d
 # jump to very bottom: G
 # jump to very top: g
+# search within file: /<text to search>
 less /home/users/mmathur/rm_1.err
 less /home/users/mmathur/rm_1.out
+
+less /home/groups/manishad/MBMA/sbatch_files/rm_1.err
+less /home/groups/manishad/MBMA/sbatch_files/rm_1.out
+
+less /home/groups/manishad/MBMA/rm_1.err
+less /home/groups/manishad/MBMA/rm_1.out
+
+find /home/groups/manishad/MBMA -name "rm_1.err"
+find /home/groups/manishad/MBMA -name "long_results_job_1_.csv"
+
+
+# searches
+/head\(new\_res\)
 
 
 # run one file

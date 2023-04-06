@@ -13,17 +13,15 @@ S.cyril381
 less /home/groups/manishad/MBMA/rmfiles/rm_1.err
 less /home/groups/manishad/MBMA/rmfiles/rm_1.out
 
-# searches
-/head\(new\_res\)
+# search within file
+/string
 
 
 # run one file
 sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
 
-# check on it
-sacct1
 
-
+# look at results
 less /home/groups/manishad/MBMA/long_results/long_results_job_1_.csv
 less /home/groups/manishad/MBMA/short_results/short_results_job_1_.csv
 
@@ -42,7 +40,10 @@ rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MB
 
 
 
-
+# how long did most recent jobs take?
+sacct --format=JobID,account,Timelimit,elapsed,ReqMem,MaxRss,ExitCode
+# check on specific job
+sacct --jobs=15032592 --format=JobID,account,Timelimit,elapsed,ReqMem,MaxRss,ExitCode
 
 # search for file within dir and sub-dirs
 find /home/groups/manishad/MBMA -name "rm_1.err"

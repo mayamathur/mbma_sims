@@ -35,50 +35,7 @@ lapply( allPackages,
 
 
 ### 2022-7-23 - debugging set ###
-scen.params = tidyr::expand_grid(
-  
-  rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; maon-adj-MhatB ; 2psm ; beta-sm",
-  
-  
-  # args from sim_meta_2
-  Nmax = 5,  # later code will set this to 1 if prob.hacked = 0
-  true.dist = c("expo", "norm"),
-  true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)",  # original setting close to empirical distribution
-                    "0.02 + rexp(n = 1, rate = 1)"),  # larger SEs overall
-  Mu = c(0, 0.5),
-  t2a = c(0, 0.25^2, 0.5^2),
-  t2w = c(0),
-  m = 50,
-  
-  # SWS args
-  # remember: method affirm will only work if prob.hacked < 1 else will never have nonaffirms
-  hack = c("affirm2", "favor-lowest-p", "favor-gamma-ratio"),  
-  rho = c(0),
-  prob.hacked = c(1, 0),
-  
-  # SAS args
-  k.pub.nonaffirm = c(5, 10, 15, 30, 50),
-  eta = c(1, 5, 10),
-  gamma = 2,  # only used for method favor-gamma-ratio
-  SAS.type = c("2psm", "carter"), # "2psm" (original) or "carter"
-  
-  
-  
-  # confounding parameters
-  # NOT using log scale here b/c underlying data are continuous
-  muB = c(0.1, 0.25, 0.5),
-  sig2B = 0.5,
-  prob.conf = c(0.5),
-  
-  # Stan control args - only relevant if running RTMA - remove these args?
-  stan.maxtreedepth = 25,
-  stan.adapt_delta = 0.995,
-  
-  get.CIs = TRUE,
-  run.optimx = FALSE )
-
-
-# ### 2022-7-23 - full set ###
+# RAN FINE WITH SIM.REPS = 100 (didn't try higher)
 # scen.params = tidyr::expand_grid(
 #   
 #   rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; maon-adj-MhatB ; 2psm ; beta-sm",
@@ -106,7 +63,7 @@ scen.params = tidyr::expand_grid(
 #   gamma = 2,  # only used for method favor-gamma-ratio
 #   SAS.type = c("2psm", "carter"), # "2psm" (original) or "carter"
 #   
-# 
+#   
 #   
 #   # confounding parameters
 #   # NOT using log scale here b/c underlying data are continuous
@@ -120,6 +77,50 @@ scen.params = tidyr::expand_grid(
 #   
 #   get.CIs = TRUE,
 #   run.optimx = FALSE )
+
+
+### 2022-7-23 - full set ###
+scen.params = tidyr::expand_grid(
+
+  rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; maon-adj-MhatB ; 2psm ; beta-sm",
+
+
+  # args from sim_meta_2
+  Nmax = 5,  # later code will set this to 1 if prob.hacked = 0
+  true.dist = c("expo", "norm"),
+  true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)",  # original setting close to empirical distribution
+                    "0.02 + rexp(n = 1, rate = 1)"),  # larger SEs overall
+  Mu = c(0, 0.5),
+  t2a = c(0, 0.25^2, 0.5^2),
+  t2w = c(0),
+  m = 50,
+
+  # SWS args
+  # remember: method affirm will only work if prob.hacked < 1 else will never have nonaffirms
+  hack = c("affirm2", "favor-lowest-p", "favor-gamma-ratio"),
+  rho = c(0),
+  prob.hacked = c(1, 0),
+
+  # SAS args
+  k.pub.nonaffirm = c(5, 10, 15, 30, 50),
+  eta = c(1, 5, 10),
+  gamma = 2,  # only used for method favor-gamma-ratio
+  SAS.type = c("2psm", "carter"), # "2psm" (original) or "carter"
+
+
+
+  # confounding parameters
+  # NOT using log scale here b/c underlying data are continuous
+  muB = c(0.1, 0.25, 0.5),
+  sig2B = 0.5,
+  prob.conf = c(0.5),
+
+  # Stan control args - only relevant if running RTMA - remove these args?
+  stan.maxtreedepth = 25,
+  stan.adapt_delta = 0.995,
+
+  get.CIs = TRUE,
+  run.optimx = FALSE )
 
 
 # ### 2022-7-23 - as in RSM_0 ###

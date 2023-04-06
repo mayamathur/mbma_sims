@@ -213,8 +213,8 @@ scen.name = group_scens(x = scen.params$scen,
 expect_equal( length(scen.name), n.files )
 
 jobname = paste("job", 1:n.files, sep="_")
-outfile = paste("rm_", 1:n.files, ".out", sep="")
-errorfile = paste("rm_", 1:n.files, ".err", sep="")
+outfile = paste("/home/groups/manishad/MBMA/rmfiles/rm_", 1:n.files, ".out", sep="")
+errorfile = paste("/home/groups/manishad/MBMA/rmfiles/rm_", 1:n.files, ".err", sep="")
 write_path = paste(path, "/sbatch_files/", 1:n.files, ".sbatch", sep="")
 runfile_path = paste(path, "/testRunFile.R", sep="")
 

@@ -237,6 +237,8 @@ sbatch_params <- data.frame(jobname,
                             stringsAsFactors = F,
                             server_sbatch_path = NA)
 
+#@temp: only keep one of them
+sbatch_params = sbatch_params[1,]
 generateSbatch(sbatch_params, runfile_path)
 
 n.files

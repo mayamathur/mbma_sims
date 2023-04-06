@@ -10,18 +10,8 @@ S.cyril381
 # jump to very bottom: G
 # jump to very top: g
 # search within file: /<text to search>
-less /home/users/mmathur/rm_1.err
-less /home/users/mmathur/rm_1.out
-
-less /home/groups/manishad/MBMA/sbatch_files/rm_1.err
-less /home/groups/manishad/MBMA/sbatch_files/rm_1.out
-
-less /home/groups/manishad/MBMA/rm_1.err
-less /home/groups/manishad/MBMA/rm_1.out
-
-find /home/groups/manishad/MBMA -name "rm_1.err"
-find /home/groups/manishad/MBMA -name "long_results_job_1_.csv"
-
+less /home/groups/manishad/MBMA/rmfiles/rm_1.err
+less /home/groups/manishad/MBMA/rmfiles/rm_1.out
 
 # searches
 /head\(new\_res\)
@@ -47,3 +37,13 @@ rm /home/groups/manishad/MBMA/rm_*
 
 # clean up (delete sbatches)
 rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MBMA/sbatch_files/
+
+
+
+
+
+
+
+# search for file within dir and sub-dirs
+find /home/groups/manishad/MBMA -name "rm_1.err"
+find /home/groups/manishad/MBMA -name "long_results_job_1_.csv"

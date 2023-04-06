@@ -1466,6 +1466,7 @@ if ( run.local == FALSE ) {
   agg_job = make_agg_data(rs)
   setwd("/home/groups/manishad/MBMA/short_results")
   fwrite( rs, paste( "short_results", jobname, ".csv", sep="_" ) )
-  
-  
+
 }
+
+

@@ -223,7 +223,7 @@ sbatch_params <- data.frame(jobname,
                             errorfile,
                             # (2022-6-19 with RTMA had used 2:00 and 200 reps.in.doParallel)
                             #  for RSM_0 sims without RTMA and with 2000 reps.in.doParallel, used 00:30:00
-                            jobtime = "01:00:00",  
+                            jobtime = "1:00:00",  
                             quality = "normal",
                             node_number = 1,
                             mem_per_node = 64000,

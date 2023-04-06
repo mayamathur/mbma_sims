@@ -1263,7 +1263,15 @@ doParallel.seconds = system.time({
     
     
     # aggregate results across multiple scens
+    
+    
+    #@temp
+    cat( paste("\n\ndoParallel flag. head(new_rs):" ) ); head(new_rs)
+    cat( paste("\n\ndoParallel flag. scens.to.run[1]:" ) ); scens.to.run[1]
+    
     if ( scen == scens.to.run[1] ) rs = new_rs else rs = bind_rows(rs, new_rs)
+    
+    cat( paste("\ndoParallel flag. head(rs):" ) ); print(head(rs))
     
   }
 
@@ -1290,8 +1298,7 @@ doParallel.seconds = system.time({
 # temp debugging
 cat( paste("\n\ndoParallel flag. str(rs):", str(rs) ) )
 
-cat( paste("\ndoParallel flag. head(rs):" ) )
-print(head(rs))
+cat( paste("\ndoParallel flag. head(rs):" ) ); print(head(rs))
 
 cat( paste("\n\ndoParallel flag. dim(rs):", dim(rs) ) )
 

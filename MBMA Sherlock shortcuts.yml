@@ -1,0 +1,36 @@
+
+
+ssh mmathur@login.sherlock.stanford.edu
+S.cyril381
+
+
+# view errors
+# jump up: u
+# jump down: d
+# jump to very bottom: G
+# jump to very top: g
+less /home/users/mmathur/rm_1.err
+less /home/users/mmathur/rm_1.out
+
+
+# run one file
+sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
+
+# check on it
+sacct1
+
+
+cd /home/groups/manishad/MBMA/long_results
+less /home/groups/manishad/MBMA/long_results/
+less /home/groups/manishad/MBMA/short_results/
+
+# clean up (retain sbatches)
+rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MBMA/long_results/
+rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MBMA/short_results/
+rm /home/groups/manishad/MBMA/overall_stitched/*
+rm /home/users/mmathur/rm_*
+rm /home/groups/manishad/MBMA/sbatch_files/rm_*
+rm /home/groups/manishad/MBMA/rm_*
+
+# clean up (delete sbatches)
+rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MBMA/sbatch_files/

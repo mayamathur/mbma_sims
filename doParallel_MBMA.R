@@ -95,10 +95,10 @@ if (run.local == FALSE) {
   cat(args[2])
   cat( mode(args[2]) )
   
-
+  
   # alt: avoid stringr::str_split becuase it gives weird error on cluster
   scens.to.run = unlist(strsplit(paste0(args[2], ","), ",")) # this will be a string like "1,2,3,4"
-
+  
   
   cat("\n\n Parsed scenarios:", scens.to.run)
   
@@ -204,52 +204,115 @@ if ( run.local == TRUE ) {
   
   # ~~ ********** Set Local Sim Params -----------------------------
   
+  # exactly as on cluster
+  
+  ### 2022-7-23 - debugging set ###
   scen.params = tidyr::expand_grid(
     
-    # for local runs, note that beta-sm is quite slow
-    # rep.methods = "naive ; mbma-MhatB ; mbma-muB ; 2psm ; beta-sm ; mbma-MhatB-gamma",
+    #@FEWER METHODS
     rep.methods = "naive ; mbma-MhatB",
     
     
     # args from sim_meta_2
-    Nmax = 1, 
-    true.dist = "expo",
-    Mu = c(0.25),
-    t2a = c(0.25), 
+    Nmax = 5,  # later code will set this to 1 if prob.hacked = 0
+    true.dist = c("expo", "norm"),
+    true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)",  # original setting close to empirical distribution
+                      "0.02 + rexp(n = 1, rate = 1)"),  # larger SEs overall
+    Mu = c(0, 0.5),
+    t2a = c(0, 0.25^2, 0.5^2),
     t2w = c(0),
     m = 50,
     
-    #bm: try running existing hacking methods? affirm or affirm2?
-    # remember that affirm will only work if prob.hacked < 1 else will never have nonaffirms
-    #hack = c("favor-lowest-p"),
-    #hack = "favor-gamma-ratio",
-    hack = "affirm2",
+    # SWS args
+    # remember: method affirm will only work if prob.hacked < 1 else will never have nonaffirms
+    hack = c("affirm2", "favor-lowest-p", "favor-gamma-ratio"),  
     rho = c(0),
-    k.pub.nonaffirm = c(15, 30),
-    prob.hacked = c(0), 
+    prob.hacked = c(1, 0),
     
-    eta = c(3),
-    # within-study selection ratio; only used when hack=favor-gamma-ratio
-    # important: other hacking methods will IGNORE gamma because can't be directly specified
-    gamma = c(2), 
-    SAS.type = "2psm", # "2psm" (original) or "carter"
+    # SAS args
+    k.pub.nonaffirm = c(5, 10, 15, 30, 50),
+    eta = c(1, 5, 10),
+    gamma = 2,  # only used for method favor-gamma-ratio
+    SAS.type = c("2psm", "carter"), # "2psm" (original) or "carter"
     
-    true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"), 
+    
     
     # confounding parameters
-    muB = 0.25,
+    # NOT using log scale here b/c underlying data are continuous
+    muB = c(0.1, 0.25, 0.5),
     sig2B = 0.5,
     prob.conf = c(0.5),
-    # muB = 0,
-    # sig2B = 0,
-    # prob.conf = 0,
     
-    # Stan control args - only relevant if running RTMA
+    # Stan control args - only relevant if running RTMA - remove these args?
     stan.maxtreedepth = 25,
     stan.adapt_delta = 0.995,
     
     get.CIs = TRUE,
     run.optimx = FALSE )
+  
+  # if there are multiple hacking types, remove redundant combos
+  # i.e., only need 1 hack type with p.hacked = 0
+  first.hack.type = unique(scen.params$hack)[1]
+  scen.params = scen.params %>% filter( prob.hacked > 0 | (prob.hacked == 0 & hack == first.hack.type) )
+  
+  # no need to make extra draws is prob.hacked = 0
+  scen.params$Nmax[ scen.params$prob.hacked == 0 ] = 1
+  
+  scen.params %>% group_by(prob.hacked, hack) %>%
+    summarise( mean(Nmax) )
+  
+  # add scen numbers
+  start.at = 1
+  scen.params = scen.params %>% add_column( scen = start.at : ( nrow(scen.params) + (start.at - 1) ),
+                                            .before = 1 )
+  
+  
+  # scen.params = tidyr::expand_grid(
+  #   
+  #   # for local runs, note that beta-sm is quite slow
+  #   # rep.methods = "naive ; mbma-MhatB ; mbma-muB ; 2psm ; beta-sm ; mbma-MhatB-gamma",
+  #   rep.methods = "naive ; mbma-MhatB",
+  #   
+  #   
+  #   # args from sim_meta_2
+  #   Nmax = 1, 
+  #   true.dist = "expo",
+  #   Mu = c(0.25),
+  #   t2a = c(0.25), 
+  #   t2w = c(0),
+  #   m = 50,
+  #   
+  #   #bm: try running existing hacking methods? affirm or affirm2?
+  #   # remember that affirm will only work if prob.hacked < 1 else will never have nonaffirms
+  #   #hack = c("favor-lowest-p"),
+  #   #hack = "favor-gamma-ratio",
+  #   hack = "affirm2",
+  #   rho = c(0),
+  #   k.pub.nonaffirm = c(15, 30),
+  #   prob.hacked = c(0), 
+  #   
+  #   eta = c(3),
+  #   # within-study selection ratio; only used when hack=favor-gamma-ratio
+  #   # important: other hacking methods will IGNORE gamma because can't be directly specified
+  #   gamma = c(2), 
+  #   SAS.type = "2psm", # "2psm" (original) or "carter"
+  #   
+  #   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"), 
+  #   
+  #   # confounding parameters
+  #   muB = 0.25,
+  #   sig2B = 0.5,
+  #   prob.conf = c(0.5),
+  #   # muB = 0,
+  #   # sig2B = 0,
+  #   # prob.conf = 0,
+  #   
+  #   # Stan control args - only relevant if running RTMA
+  #   stan.maxtreedepth = 25,
+  #   stan.adapt_delta = 0.995,
+  #   
+  #   get.CIs = TRUE,
+  #   run.optimx = FALSE )
   
   
   # more scens
@@ -291,12 +354,13 @@ if ( run.local == TRUE ) {
   scen.params$scen = 1:nrow(scen.params)
   
   
-  sim.reps = 2  # reps to run in this iterate
+  sim.reps = 100  # reps to run in this iterate
   
   # set the number of local cores
   registerDoParallel(cores=8)
   
-  scens.to.run = c(1,2)
+  #scens.to.run = c(1,2)
+  scens.to.run = 1:8
   # data.frame(scen.params %>% filter(scen.name == scen))
   
   # make sure we made enough scens to actually run them
@@ -1266,20 +1330,27 @@ doParallel.seconds = system.time({
     
     
     #@temp
-    cat( paste("\n\ndoParallel flag. head(new_rs):" ) ); head(new_rs)
+    cat( paste("\n\ndoParallel flag. nrow(new_rs):" ) ); nrow(new_rs)
+    cat( paste("\n\ndoParallel flag. nrow(rs):" ) ); if (exists("rs")) nrow(rs)
     cat( paste("\n\ndoParallel flag. scens.to.run[1]:" ) ); scens.to.run[1]
     
-    if ( scen == scens.to.run[1] ) rs = new_rs else rs = bind_rows(rs, new_rs)
+    if ( scen == scens.to.run[1] ) {
+      cat( paste("\n\ndoParallel flag: IF"))
+      rs <<- new_rs
+    } else {
+      cat( paste("\n\ndoParallel flag: ELSE"))
+      rs <<- bind_rows(rs, new_rs)
+    }
     
-    cat( paste("\ndoParallel flag. head(rs):" ) ); print(head(rs))
+    cat( paste("\n\ndoParallel flag13. nrow(rs):" ) ); if (exists("rs")) nrow(rs)
     
-  }
-
+  } # end "for ( scen in scens.to.run )"
+  
 } )[3]  # end system.time
 
 
 
-
+cat( paste("\n\ndoParallel flag. Done entire for-loop." ) )
 
 # dim(rs)
 # # quick look

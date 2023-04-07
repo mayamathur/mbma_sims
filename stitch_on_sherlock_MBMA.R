@@ -39,41 +39,46 @@ library(dplyr)
 library(testthat)
 
 
-##### NEW - stitch pre-aggregated things
-
-# get list of all files in folder
-all.files = list.files(.results.singles.path, full.names=TRUE)
-
-# we only want the ones whose name includes .name.prefix
-keepers = all.files[ grep( .name.prefix, all.files ) ]
-length(keepers)
-
-# grab variable names from first file
-names = names( read.csv(keepers[1] ) )
-
-# read in and rbind the keepers
-tables <- lapply( keepers, function(x) read.csv(x, header= TRUE) )
-
-# sanity check: do all files have the same names?
-# if not, could be because some jobs were killed early so didn't get doParallelTime
-#  variable added at the end
-#  can be verified by looking at out-file for a job without name "doParallelTime"
-allNames = lapply( tables, names )
-# # find out which jobs had wrong number of names
-# lapply( allNames, function(x) all.equal(x, names ) )
-# allNames[[1]][ !allNames[[1]] %in% allNames[[111]] ]
-
-# bind_rows works even if datasets have different names
-#  will fill in NAs
-s <- do.call(bind_rows, tables)
-
-names(s) = names( read.csv(keepers[1], header= TRUE) )
-
-if( is.na(s[1,1]) ) s = s[-1,]  # delete annoying NA row
-# write.csv(s, paste(.results.stitched.write.path, .stitch.file.name, sep="/") )
-
-cat("\n\n nrow(s) =", nrow(s))
-cat("\n nuni(s$scen.name) =", nuni(s$scen.name) )
+# ##### NEW - stitch pre-aggregated things
+# 
+# .results.singles.path = "/home/groups/manishad/MBMA/short_results"
+# .results.stitched.write.path = "/home/groups/manishad/MBMA/stitched_results"
+# .name.prefix = "short_results"
+# .stitch.file.name="agg.csv"
+# 
+# # get list of all files in folder
+# all.files = list.files(.results.singles.path, full.names=TRUE)
+# 
+# # we only want the ones whose name includes .name.prefix
+# keepers = all.files[ grep( .name.prefix, all.files ) ]
+# length(keepers)
+# 
+# # grab variable names from first file
+# names = names( read.csv(keepers[1] ) )
+# 
+# # read in and rbind the keepers
+# tables <- lapply( keepers, function(x) read.csv(x, header= TRUE) )
+# 
+# # sanity check: do all files have the same names?
+# # if not, could be because some jobs were killed early so didn't get doParallelTime
+# #  variable added at the end
+# #  can be verified by looking at out-file for a job without name "doParallelTime"
+# allNames = lapply( tables, names )
+# # # find out which jobs had wrong number of names
+# # lapply( allNames, function(x) all.equal(x, names ) )
+# # allNames[[1]][ !allNames[[1]] %in% allNames[[111]] ]
+# 
+# # bind_rows works even if datasets have different names
+# #  will fill in NAs
+# agg <- do.call(bind_rows, tables)
+# 
+# names(agg) = names( read.csv(keepers[1], header= TRUE) )
+# 
+# if( is.na(agg[1,1]) ) agg = agg[-1,]  # delete annoying NA row
+# # write.csv(s, paste(.results.stitched.write.path, .stitch.file.name, sep="/") )
+# 
+# cat("\n\n nrow(agg) =", nrow(agg))
+# cat("\n nuni(agg$scen.name) =", nuni(agg$scen.name) )
 
 
 
@@ -173,9 +178,7 @@ setwd(path)
 source("helper_MBMA.R")
 source("analyze_sims_helper_MBMA.R")
 
-# if this says "problem with column OptimConverged", 
-#  you just need to comment out the optim columns in make_agg_data
-#  because you didn't run those methods
+
 agg = make_agg_data(s)
 
 setwd(.results.stitched.write.path)
@@ -231,7 +234,7 @@ if (FALSE) {
   missed.nums = sbatch_not_run( "/home/groups/manishad/MBMA/long_results",
                                 "/home/groups/manishad/MBMA/long_results",
                                 .name.prefix = "long",
-                                .max.sbatch.num = 90)
+                                .max.sbatch.num = 864)
   
   setwd( paste(path, "/sbatch_files", sep="") )
   for (i in missed.nums) {

@@ -86,6 +86,9 @@ source("analyze_sims_helper_MBMA.R")
 setwd(data.dir)
 aggo = fread("agg.csv")
 
+# check when the dataset was last modified to make sure we're working with correct version
+file.info("aggo.csv")$mtime
+
 # # for working with stitched directly
 # s = fread( "stitched.csv")
 # # check when the dataset was last modified to make sure we're working with correct version
@@ -115,9 +118,11 @@ param.vars.short = c(
                "eta",
                "SAS.type",
                
+               "true.dist",
                "true.sei.expr",
                
-               "muB"
+               "muB",
+               "t2a"
                )
 
 CreateCatTable(vars = param.vars.short,
@@ -169,6 +174,10 @@ t = agg %>%
             BiasMd = median(MhatBias),
             BiasMax = max(MhatBias),
             
+            AbsBiasMin = min(MhatAbsBias),
+            AbsBiasMd = median(MhatAbsBias),
+            AbsBiasMax = max(MhatAbsBias),
+            
             MhatEstFail = median(MhatEstFail),
             
             #*express coverage as percent
@@ -217,7 +226,11 @@ temp = agg %>% filter(true.dist == "expo"); dim(temp)
                                summarise.fun.name = "worst10th" ) )
 
 # later (not run yet): evil.selection == 1 or == 0
-
+temp = agg %>% filter(evil.selection == 1); dim(temp)
+( t1.mn = make_winner_table(.agg = temp,
+                            summarise.fun.name = "mean" ) )
+( t1.worst = make_winner_table(.agg = temp,
+                               summarise.fun.name = "worst10th" ) )
 
 # ******** PLOTS (BIG AND NOT PRETTIFIED) -------------------------
 

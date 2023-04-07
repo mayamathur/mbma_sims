@@ -1200,7 +1200,26 @@ doParallel.seconds = system.time({
       
       cat("\ndoParallel flag: Before adding sanity checks to rep.res")
       
+      #@temp debugging - figure out which of san checks fails
+      sancheck.dp.k = nrow(dp)
+      sancheck.dp.k.affirm = sum(dp$affirm == TRUE)
+      sancheck.dp.k.nonaffirm = sum(dp$affirm == FALSE)
       
+      sancheck.dp.k.conf = sum( dp$Ci == 1 )
+      sancheck.dp.k.affirm.conf = ifelse( sum(dp$affirm) > 0, sum( dp$Ci[ dp$affirm == 1 ] ), NA )
+      sancheck.dp.k.nonaffirm.conf = ifelse( sum(dp$affirm) < 1, sum( dp$Ci[ dp$affirm == 0 ] ), NA )
+      
+      # sanity checks for MhatB
+      # E[Bi^* | Ci^* = 1], the target for MhatB:
+      sancheck.MhatB = MhatB
+      # note: Fi = 1 here is FAVORING indicator, so this is still the mean Bi among underlying (pre-SAS) estimates
+      # this is an underlying SAMPLE estimate of the truth; should approximately agree with MhatB and muB
+      sancheck.EBsti = ifelse( mean(d$Ci == 1 & d$Fi == 1) > 0,
+                               mean( d$Bi[ d$Ci == 1 & d$Fi == 1] ),
+                               NA )
+      
+      sancheck.shat2B = shat2B
+      #@end temp debugging
       
       # add info about simulated datasets
       rep.res = rep.res %>% add_column(   sancheck.dp.k = nrow(dp),

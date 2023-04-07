@@ -37,6 +37,54 @@ source("analyze_sims_helper_MBMA.R")
 library(data.table)
 library(dplyr)
 library(testthat)
+
+
+##### NEW - stitch pre-aggregated things
+
+# get list of all files in folder
+all.files = list.files(.results.singles.path, full.names=TRUE)
+
+# we only want the ones whose name includes .name.prefix
+keepers = all.files[ grep( .name.prefix, all.files ) ]
+length(keepers)
+
+# grab variable names from first file
+names = names( read.csv(keepers[1] ) )
+
+# read in and rbind the keepers
+tables <- lapply( keepers, function(x) read.csv(x, header= TRUE) )
+
+# sanity check: do all files have the same names?
+# if not, could be because some jobs were killed early so didn't get doParallelTime
+#  variable added at the end
+#  can be verified by looking at out-file for a job without name "doParallelTime"
+allNames = lapply( tables, names )
+# # find out which jobs had wrong number of names
+# lapply( allNames, function(x) all.equal(x, names ) )
+# allNames[[1]][ !allNames[[1]] %in% allNames[[111]] ]
+
+# bind_rows works even if datasets have different names
+#  will fill in NAs
+s <- do.call(bind_rows, tables)
+
+names(s) = names( read.csv(keepers[1], header= TRUE) )
+
+if( is.na(s[1,1]) ) s = s[-1,]  # delete annoying NA row
+# write.csv(s, paste(.results.stitched.write.path, .stitch.file.name, sep="/") )
+
+cat("\n\n nrow(s) =", nrow(s))
+cat("\n nuni(s$scen.name) =", nuni(s$scen.name) )
+
+
+
+
+
+
+
+
+##### OLD - stitch individual rows
+# MAKE STITCHED DATA ----------------------------------------------
+
 # s = stitch_files(.results.singles.path = "/home/groups/manishad/MBMA/sim_results/long",
 #                  .results.stitched.write.path = "/home/groups/manishad/MBMA/sim_results/overall_stitched",
 #                  .name.prefix = "long_results",
@@ -47,8 +95,6 @@ library(testthat)
 .name.prefix = "long_results"
 .stitch.file.name="stitched.csv"
 
-
-# MAKE STITCHED DATA ----------------------------------------------
 
 # get list of all files in folder
 all.files = list.files(.results.singles.path, full.names=TRUE)

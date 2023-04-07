@@ -1486,7 +1486,7 @@ if ( run.local == FALSE ) {
   #@later would make more sense to change it to short_results
   agg_job = make_agg_data(rs)
   setwd("/home/groups/manishad/MBMA/short_results")
-  fwrite( rs, paste( "short_results", jobname, ".csv", sep="_" ) )
+  fwrite( agg_job, paste( "short_results", jobname, ".csv", sep="_" ) )
 
 }
 

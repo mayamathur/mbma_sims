@@ -302,8 +302,8 @@ wrangle_agg_local = function(agg) {
   agg$method.pretty = NA
   agg$method.pretty[ agg$method == c("naive") ] = "Uncorrected"
   agg$method.pretty[ agg$method == c("maon-adj-MhatB") ] = "MAN adjusted"
-  agg$method.pretty[ agg$method == c("2psm") ] = "SM (step)"
-  agg$method.pretty[ agg$method == c("beta-sm") ] = "SM (beta)"
+  agg$method.pretty[ agg$method == c("2psm") ] = "SM-step"
+  agg$method.pretty[ agg$method == c("beta-sm") ] = "SM-beta"
   agg$method.pretty[ agg$method == c("mbma-MhatB") ] = "Proposed" 
   agg$method.pretty[ agg$method == c("mbma-Mhat-true-t2") ] = "MBMA (true t2)"
   agg$method.pretty[ agg$method == c("mbma-MhatB-gamma") ] = "MBMA (gamma)"

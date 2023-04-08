@@ -1182,8 +1182,7 @@ report_meta = function(.mod,
   names(.res) = paste( c("Mhat", "MLo", "MHi", "Shat", "SLo", "SHi"), .suffix, sep = "" )
   row.names(.res) = NULL
   
-  browser()
-  
+
   return( list(stats = .res) )
 }
 

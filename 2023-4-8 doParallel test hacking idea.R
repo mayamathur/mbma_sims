@@ -217,7 +217,7 @@ if ( run.local == TRUE ) {
     Nmax = 5,  # later code will set this to 1 if prob.hacked = 0
     true.dist = c("norm"),
     true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),  # larger SEs overall
-    Mu = c(0.5),
+    Mu = c(0.25),
     t2a = c(0.25^2),
     t2w = c(0),
     m = 50,
@@ -238,9 +238,9 @@ if ( run.local == TRUE ) {
     
     # confounding parameters
     # NOT using log scale here b/c underlying data are continuous
-    muB = c(0.25),
+    muB = c(0.1),
     sig2B = 0,
-    prob.conf = c(0.5),
+    prob.conf = c(0),
     
     # Stan control args - only relevant if running RTMA - remove these args?
     stan.maxtreedepth = 25,
@@ -360,8 +360,8 @@ if ( run.local == TRUE ) {
   # set the number of local cores
   registerDoParallel(cores=8)
   
-  scens.to.run = 1:8
-  #scens.to.run = 330
+  #scens.to.run = 1:8
+  scens.to.run = 1
   # data.frame(scen.params %>% filter(scen.name == scen))
   
   # make sure we made enough scens to actually run them
@@ -476,10 +476,26 @@ doParallel.seconds = system.time({
       
       d$Zi = d$yi / sqrt(d$vi)
       
+      # NEW
+      # JOINT indicator for having internal bias
+      d$Ci.jt = ifelse( (d$Ci == 1) | (d$hack != "no" ), 1, 0 )
+      # sanity check
+      d %>% group_by(Ci, hack) %>%
+        summarise( mean(Ci.jt) )
+      
+      # NEW
+      # JOINT bias - empirical rather than theoretical because of hacking
+      d$Bi.jt = d$Bi + (d$mui - d$muin)  # if no hacking, second term will be zero
+      summary(d$Bi.jt)
+      summary(d$Bi)
+      
+      # sanity check: equivalence with previous approach
+      #  when there's no hacking
+      if ( p$prob.hacked == 0 ) expect_equal(d$Bi.jt, d$Bi)
       
       # ~ For MBMA: Gold-Standard Confounding Adjustment (TRUE muB, sigB) ------------------------------
       
-      
+      # NOT UPDATED FOR HACKING JOINT
       if ( any(d$Ci == 1) ) {
         # this section of code is fine even if d$Ci = 1 always
         d$yi.adj.true = d$yi - d$Ci * p$muB
@@ -517,10 +533,12 @@ doParallel.seconds = system.time({
       #dp = d %>% filter(Fi == 1 & Di.across == 1)  # throwing weird error now?
       dp = d[ d$Fi == 1 & d$Di.across == 1, ]
       
-      if ( any(dp$Ci == 1) ) {
-        
+
+      # NEW - accommodate hacking
+      if ( any(dp$Ci.jt == 1) ) {
+
         # P(A^*_i = a | C^*_i = 1, D^*_i = 1)
-        ( P.affirm.pub = mean( dp$affirm[ dp$Ci == 1 ] ) )
+        ( P.affirm.pub = mean( dp$affirm[ dp$Ci.jt == 1 ] ) )
         # and P(A^*_i = 0 | C^*_i = 1):
         P.nonaffirm.pub = 1 - P.affirm.pub
         
@@ -529,7 +547,7 @@ doParallel.seconds = system.time({
         
         # avoid NAs in MhatB.affirm.obs if there are no affirms
         if ( P.affirm.pub > 0 ) {
-          MhatB.affirm.obs = mean( dp$Bi[ dp$Ci == 1 & dp$affirm == 1] )
+          MhatB.affirm.obs = mean( dp$Bi.jt[ dp$Ci.jt == 1 & dp$affirm == 1] )
         } else {
           # doesn't matter what value is assigned since will be multiplied
           #  by probability of 0
@@ -537,7 +555,7 @@ doParallel.seconds = system.time({
         }
         
         if ( P.nonaffirm.pub > 0 ) {
-          MhatB.nonaffirm.obs = mean( dp$Bi[ dp$Ci == 1 & dp$affirm == 0] )
+          MhatB.nonaffirm.obs = mean( dp$Bi.jt[ dp$Ci.jt == 1 & dp$affirm == 0] )
         } else {
           # doesn't matter what value is assigned since will be multiplied
           #  by probability of 0
@@ -551,16 +569,7 @@ doParallel.seconds = system.time({
         ( MhatB = (1/denom) * ( P.nonaffirm.pub * p$eta * MhatB.nonaffirm.obs +
                                   P.affirm.pub * MhatB.affirm.obs ) )
         
-        
-        # # save: unweighted sample estimate one (just for comparison)
-        # # will be way too high
-        # mean( dp$Bi[ dp$Ci == 1 ] )
-        # 
-        # # underlying sample estimate of truth
-        # mean( d$Bi[ d$Ci == 1 & d$Di == 1] )
-        # 
-        # # also should be close to...
-        # p$muB
+    
         
         # ~ Sample estimate of sig2B (only used for RTMA, not MBMA) -------------------
         
@@ -571,16 +580,16 @@ doParallel.seconds = system.time({
         
         # variance of bias in published studies, assumed known
         # avoid NAs if there are no confounded affirms
-        if ( any( dp$Ci == 1 & dp$affirm == 1 ) ) {
-          ( shat2B.affirm.obs = var( dp$Bi[ dp$Ci == 1 & dp$affirm == 1 ] ) )
+        if ( any( dp$Ci.jt == 1 & dp$affirm == 1 ) ) {
+          ( shat2B.affirm.obs = var( dp$Bi.jt[ dp$Ci.jt == 1 & dp$affirm == 1 ] ) )
         } else {
           # doesn't matter what value is assigned since will be multiplied
           #  by probability of 0
           shat2B.affirm.obs = 0
         }
         
-        if ( any(dp$Ci == 1 & dp$affirm == 0) ) {
-          ( shat2B.nonaffirm.obs = var( dp$Bi[ dp$Ci == 1 & dp$affirm == 0 ] ) )
+        if ( any(dp$Ci.jt == 1 & dp$affirm == 0) ) {
+          ( shat2B.nonaffirm.obs = var( dp$Bi.jt[ dp$Ci.jt == 1 & dp$affirm == 0 ] ) )
         } else {
           # doesn't matter what value is assigned since will be multiplied
           #  by probability of 0
@@ -617,65 +626,17 @@ doParallel.seconds = system.time({
         
         # adjusted yi's using the estimated MhatB
         # using the underlying dataset rather than dp so that we can do sanity checks later
-        d$yi.adj.est = d$yi - d$Ci * MhatB
+        d$yi.adj.est = d$yi - d$Ci.jt * MhatB
+        #bm
         
-        d$vi.adj.est = d$vi + d$Ci * shat2B
+        d$vi.adj.est = d$vi + d$Ci.jt * shat2B
         
         d$tcrit.adj.est = d$tcrit
-        d$tcrit.adj.est[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] *
-                                           sqrt(d$vi[ d$Ci == 1 ]) - MhatB ) / sqrt(d$vi.adj.est[ d$Ci == 1 ])
+        d$tcrit.adj.est[ d$Ci.jt == 1 ] = ( d$tcrit[ d$Ci.jt == 1 ] *
+                                           sqrt(d$vi[ d$Ci.jt == 1 ]) - MhatB ) / sqrt(d$vi.adj.est[ d$Ci.jt == 1 ])
         
         
-        # ~ Sanity checks on RTMA reparametrization -------------------
-        
-        # look for problems calculating the adjusted estimates
-        # if ( any(is.na(d$yi.adj.est)) | any(is.na(d$vi.adj.est)) ) {
-        # 
-        #   cat("\n\n TEMP FLAG yi.adj.est:\n")
-        #   print(head(d$yi.adj.est))
-        # 
-        #   cat("\n\n vi.adj.est:\n")
-        #   print(head(d$vi.adj.est))
-        # 
-        #   cat("\n\n mean(dp$Ci):\n")
-        #   print( mean(dp$Ci) )
-        # 
-        #   cat("\n\n mean(dp$affirm):\n")
-        #   print( mean(dp$affirm) )
-        # 
-        #   cat("\n\n shat2B:\n")
-        #   print( shat2B )
-        # 
-        #   cat("\n\n shat2B.nonaffirm.obs:\n")
-        #   print( shat2B.nonaffirm.obs )
-        # 
-        #   cat("\n\n shat2B.affirm.obs:\n")
-        #   print( shat2B.affirm.obs )
-        # }
-        # 
-        # if ( length(d$yi.adj.est) == 0 | length(d$vi.adj.est) == 0 ) {
-        # 
-        #   cat("\n\n TEMP FLAG yi.adj.est:\n")
-        #   print(head(d$yi.adj.est))
-        # 
-        #   cat("\n\n vi.adj.est:\n")
-        #   print(head(d$vi.adj.est))
-        # 
-        #   cat("\n\n mean(dp$Ci):\n")
-        #   print( mean(dp$Ci) )
-        # 
-        #   cat("\n\n mean(dp$affirm):\n")
-        #   print( mean(dp$affirm) )
-        # 
-        #   cat("\n\n shat2B:\n")
-        #   print( shat2B )
-        # 
-        #   cat("\n\n shat2B.nonaffirm.obs:\n")
-        #   print( shat2B.nonaffirm.obs )
-        # 
-        #   cat("\n\n shat2B.affirm.obs:\n")
-        #   print( shat2B.affirm.obs )
-        # }
+
         
         
         expect_equal( d$affirm,
@@ -689,7 +650,7 @@ doParallel.seconds = system.time({
         
         
       } else {
-        # i.e., if Ci = 0 always
+        # i.e., if Ci.jt = 0 always
         d$yi.adj.est = d$yi
         d$vi.adj.est = d$vi
         d$tcrit.adj.est = d$tcrit
@@ -787,7 +748,7 @@ doParallel.seconds = system.time({
                                                               
                                                               # estimated OVERALL selection ratio (eta*gamma)
                                                               # index [3] would change for PSM with more cut points
-                                                              EtaGammaHat = 1/mod$output_adj$par[3]
+                                                              SelectionRatEst = 1/mod$output_adj$par[3]
                                     ) )
                                     
                                     
@@ -1375,16 +1336,16 @@ doParallel.seconds = system.time({
 cat( paste("\n\ndoParallel flag. Done entire for-loop." ) )
 
 # dim(rs)
-# # quick look
-# rs %>% mutate(MhatWidth = MHi - MLo,
-#               MhatCover = as.numeric( MHi > Mu & MLo < Mu ) ) %>%
-#   dplyr::select(method, Mhat, MhatWidth, MhatCover,EtaGammaHat,EtaGammaAssumed,
-#                 sancheck.MhatB, sancheck.EBsti) %>%
-# 
-#   group_by(method) %>%
-#   summarise_if(is.numeric, function(x) round( meanNA(x), 2 ) )
-# 
-# any(is.na(rs$sancheck.MhatB))
+# quick look
+rs %>% mutate(MhatWidth = MHi - MLo,
+              MhatCover = as.numeric( MHi > Mu & MLo < Mu ) ) %>%
+  dplyr::select(method, Mhat, MhatWidth, MhatCover,SelectionRatEst,EtaGammaAssumed,
+                sancheck.MhatB, sancheck.EBsti) %>%
+
+  group_by(method) %>%
+  summarise_if(is.numeric, function(x) round( meanNA(x), 2 ) )
+
+any(is.na(rs$sancheck.MhatB))
 
 
 
@@ -1453,7 +1414,7 @@ if ( run.local == TRUE ) {
                MHi = meanNA(MHi),
                
                EtaGammaAssumed = meanNA(EtaGammaAssumed),
-               EtaGammaHat = meanNA(EtaGammaHat),
+               SelectionRatEst = meanNA(SelectionRatEst),
                EtaEmpCarter = meanNA(EtaEmpCarter) )
   
   # round

@@ -352,6 +352,7 @@ sim_meta_2 = function(Mu,
       newRows$Di.across.prob[ newRows$Fi == 1 & newRows$affirm == FALSE ] = 1/eta
       
     } else if ( SAS.type == "carter" ) {
+      if ( sum(newRows$Fi) > 1 ) stop("Your hack type generates multiple favored draws per study, but SAS.type carter not implemented for this case")
       newRows$Di.across.prob[ newRows$Fi == 1 ] = carter_censor(pObs = newRows$pval[ newRows$Fi == 1 ],
                                                                 direction = ifelse( newRows$pval[ newRows$Fi == 1 ] > 0, 1, -1),
                                                                 posSign_NS_baseRate = 0.3,

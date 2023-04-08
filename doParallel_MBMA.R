@@ -205,7 +205,7 @@ if ( run.local == TRUE ) {
   # ~~ ********** Set Local Sim Params -----------------------------
   
   # exactly as on cluster
-  
+
   ### 2022-7-23 - debugging set ###
   scen.params = tidyr::expand_grid(
     
@@ -354,13 +354,15 @@ if ( run.local == TRUE ) {
   scen.params$scen = 1:nrow(scen.params)
   
   
-  sim.reps = 100  # reps to run in this iterate
+  sim.reps = 10  # reps to run in this iterate
   
   # set the number of local cores
   registerDoParallel(cores=8)
   
   #scens.to.run = c(1,2)
-  scens.to.run = 1:8
+  #scens.to.run = 1:8
+  #scens.to.run = c(7141, 7142, 7143, 7144, 7145, 7146, 7147, 7148, 7149, 7150) # evil ones from job that failed
+  scens.to.run=7144
   # data.frame(scen.params %>% filter(scen.name == scen))
   
   # make sure we made enough scens to actually run them
@@ -395,6 +397,8 @@ if ( exists("rs") ) rm(rs)
 doParallel.seconds = system.time({
   
   for ( scen in scens.to.run ) {
+    
+    cat("\n\n~~~~~~~~~~~~~~~~ BEGIN SCEN", scen, "~~~~~~~~~~~~~~~~")
     
     new_rs = foreach( i = 1:sim.reps, .combine = bind_rows ) %dopar% {
       #for debugging (out file will contain all printed things):
@@ -745,6 +749,8 @@ doParallel.seconds = system.time({
       # ~~ Naive Meta-Analysis (All PUBLISHED Draws)
       
       if ( "naive" %in% all.methods ) {
+        #@temp
+        print("YES")
         rep.res = run_method_safe(method.label = c("naive"),
                                   method.fn = function() {
                                     mod = rma( yi = dp$yi,

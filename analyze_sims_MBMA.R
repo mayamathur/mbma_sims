@@ -89,6 +89,8 @@ aggo = fread("agg.csv")
 # check when the dataset was last modified to make sure we're working with correct version
 file.info("aggo.csv")$mtime
 
+nuni(aggo$scen.name)
+
 # # for working with stitched directly
 # s = fread( "stitched.csv")
 # # check when the dataset was last modified to make sure we're working with correct version
@@ -209,6 +211,13 @@ for ( .col in names(t)[ 2 : ncol(t) ] ) {
 ( t1.worst = make_winner_table(.agg = agg,
                           summarise.fun.name = "worst10th" ) )
 
+
+# scenarios where our method is correctly spec
+temp = agg %>% filter(evil.selection == 0); dim(temp)
+( t1.mn = make_winner_table(.agg = temp,
+                            summarise.fun.name = "mean" ) )
+( t1.worst = make_winner_table(.agg = temp,
+                               summarise.fun.name = "worst10th" ) )
 
 # scens with SWS
 temp = agg %>% filter(prob.hacked == 1); dim(temp)

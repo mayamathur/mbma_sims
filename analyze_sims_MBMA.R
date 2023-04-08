@@ -238,12 +238,14 @@ temp = agg %>% filter(evil.selection == 1); dim(temp)
 
 
 yNames = c("MhatAbsBias",
+           "MhatBias",
+           "EtaGammaAssumed",  # in MBMA
+           "EtaGammaHat",  # from 2PSM
   "MhatRMSE",
   "MhatCover",
-  "EtaGammaAssumed",  # in MBMA
-  "EtaGammaHat",  # from 2PSM
   "MhatEstFail")
 
+# specific eta so we can look at estimation
 temp = agg %>% filter(hack == "favor-gamma-ratio" & SAS.type == "2psm" & eta == 5 )
 
 t1.mn = make_winner_table(.agg = temp,

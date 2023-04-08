@@ -232,6 +232,39 @@ temp = agg %>% filter(evil.selection == 1); dim(temp)
 ( t1.worst = make_winner_table(.agg = temp,
                                summarise.fun.name = "worst10th" ) )
 
+
+
+# ******** TEMP: PERFORMANCE UNDER HACKING -------------------------
+
+
+yNames = c("MhatAbsBias",
+  "MhatRMSE",
+  "MhatCover",
+  "EtaGammaAssumed",  # in MBMA
+  "EtaGammaHat",  # from 2PSM
+  "MhatEstFail")
+
+temp = agg %>% filter(hack == "favor-gamma-ratio" & SAS.type == "2psm" & eta == 5 )
+
+t1.mn = make_winner_table(.agg = temp,
+                          .yNames = yNames,
+                          summarise.fun.name = "mean")
+
+View(t1.mn)
+
+
+# all evil selection mechanisms
+temp = agg %>% filter(prob.hacked == 1 )
+
+t1.mn = make_winner_table(.agg = temp,
+                          .yNames = yNames,
+                          summarise.fun.name = "mean")
+
+View(t1.mn)
+
+
+
+
 # ******** PLOTS (BIG AND NOT PRETTIFIED) -------------------------
 
 Ynames = rev(MhatYNames)

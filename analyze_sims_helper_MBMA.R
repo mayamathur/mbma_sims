@@ -362,7 +362,7 @@ wrangle_agg_local = function(agg) {
 
 make_winner_table_col = function(.agg,
                                  yName,
-                                 methods = c("naive", "mbma-MhatB", "2psm", "beta-sm"),
+                                 methods = c("naive", "mbma-MhatB", "mbma-MhatB-gamma", "2psm", "beta-sm"),
                                  summarise.fun.name = "mean",
                                  digits = 2) {
   

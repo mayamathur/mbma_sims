@@ -206,41 +206,40 @@ if ( run.local == TRUE ) {
   
   # exactly as on cluster
   
-  ### 2022-7-23 - debugging set ###
+  ### 2023-04-08 ###
   scen.params = tidyr::expand_grid(
     
     #@FEWER METHODS
-    rep.methods = "naive ; mbma-MhatB",
+    rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; 2psm",
     
     
     # args from sim_meta_2
     Nmax = 5,  # later code will set this to 1 if prob.hacked = 0
-    true.dist = c("expo", "norm"),
-    true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)",  # original setting close to empirical distribution
-                      "0.02 + rexp(n = 1, rate = 1)"),  # larger SEs overall
-    Mu = c(0, 0.5),
-    t2a = c(0, 0.25^2, 0.5^2),
+    true.dist = c("norm"),
+    true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),  # larger SEs overall
+    Mu = c(0.5),
+    t2a = c(0.25^2),
     t2w = c(0),
     m = 50,
     
     # SWS args
     # remember: method affirm will only work if prob.hacked < 1 else will never have nonaffirms
-    hack = c("affirm2", "favor-lowest-p", "favor-gamma-ratio"),  
+    hack = c("favor-lowest-p"),  
     rho = c(0),
-    prob.hacked = c(1, 0),
+    prob.hacked = c(1),
     
     # SAS args
-    k.pub.nonaffirm = c(5, 10, 15, 30, 50),
-    eta = c(1, 5, 10),
+    k.pub.nonaffirm = c(30),
+    eta = c(5),
     gamma = 2,  # only used for method favor-gamma-ratio
-    SAS.type = c("2psm", "carter"), # "2psm" (original) or "carter"
+    SAS.type = c("2psm"), # "2psm" (original) or "carter"
     
     
     
     # confounding parameters
     # NOT using log scale here b/c underlying data are continuous
-    muB = c(0.1, 0.25, 0.5),
-    sig2B = 0.5,
+    muB = c(0.25),
+    sig2B = 0,
     prob.conf = c(0.5),
     
     # Stan control args - only relevant if running RTMA - remove these args?
@@ -249,6 +248,8 @@ if ( run.local == TRUE ) {
     
     get.CIs = TRUE,
     run.optimx = FALSE )
+  
+  
   
   # if there are multiple hacking types, remove redundant combos
   # i.e., only need 1 hack type with p.hacked = 0
@@ -359,8 +360,8 @@ if ( run.local == TRUE ) {
   # set the number of local cores
   registerDoParallel(cores=8)
   
-  #scens.to.run = c(1,2)
   scens.to.run = 1:8
+  #scens.to.run = 330
   # data.frame(scen.params %>% filter(scen.name == scen))
   
   # make sure we made enough scens to actually run them
@@ -511,7 +512,7 @@ doParallel.seconds = system.time({
       
       # ***** For MBMA: Identifiable Confounding Adjustment (ESTIMATED muB, sigB) -----------------
       
-      # dataset of only favored AND published resultsdoParallel
+      # dataset of only favored AND published results
       # (used in this section)
       #dp = d %>% filter(Fi == 1 & Di.across == 1)  # throwing weird error now?
       dp = d[ d$Fi == 1 & d$Di.across == 1, ]

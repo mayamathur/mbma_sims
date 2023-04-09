@@ -363,7 +363,7 @@ wrangle_agg_local = function(agg) {
 make_winner_table_col = function(.agg,
                                  yName,
                                  methods = c("naive", "mbma-MhatB", "mbma-MhatB-gamma", "2psm", "beta-sm"),
-                                 summarise.fun.name = "mean",
+                                 summarise.fun.name = "median",
                                  digits = 2) {
   
   .agg$Y = .agg[[yName]]
@@ -376,6 +376,12 @@ make_winner_table_col = function(.agg,
     t = .agg %>% filter(method %in% methods) %>%
       group_by(method.pretty) %>%
       summarise( Y = round( mean(Y), digits = digits ) )
+  }
+  
+  if ( summarise.fun.name == "median" ) {
+    t = .agg %>% filter(method %in% methods) %>%
+      group_by(method.pretty) %>%
+      summarise( Y = round( median(Y), digits = digits ) )
   }
   
   if ( summarise.fun.name == "worst10th" & yName %in% higherBetterYNames ) {
@@ -408,7 +414,7 @@ make_winner_table_col = function(.agg,
 
 
 make_winner_table = function( .agg,
-                              .yNames = c("MhatAbsBias", "MhatRMSE", "MhatCover", "MhatWidth", "MhatEstFail"),
+                              .yNames = c("MhatBias", "MhatAbsBias", "MhatRMSE", "MhatCover", "MhatWidth", "MhatEstFail"),
                               summarise.fun.name ){
   
   for ( .yName in .yNames ){

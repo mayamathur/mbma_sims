@@ -87,7 +87,7 @@ setwd(data.dir)
 aggo = fread("agg.csv")
 
 # check when the dataset was last modified to make sure we're working with correct version
-file.info("aggo.csv")$mtime
+file.info( paste(data.dir, "agg.csv", sep="/") )$mtime
 
 nuni(aggo$scen.name)
 
@@ -109,6 +109,9 @@ agg = wrangle_agg_local(aggo)
 
 table(agg$method.pretty)
 table(agg$evil.selection)
+
+#@temp: remove favor-gamma scens
+agg = agg %>% filter(hack != "favor-gamma-ratio")
 
 # which key scen params have run so far?
 library(tableone)
@@ -205,9 +208,10 @@ for ( .col in names(t)[ 2 : ncol(t) ] ) {
 
 # ******** RANKED PERFORMANCE TABLES -------------------------
 
+
 # all scenarios
 ( t1.mn = make_winner_table(.agg = agg,
-                       summarise.fun.name = "mean" ) )
+                       summarise.fun.name = "median" ) )
 ( t1.worst = make_winner_table(.agg = agg,
                           summarise.fun.name = "worst10th" ) )
 
@@ -215,33 +219,48 @@ for ( .col in names(t)[ 2 : ncol(t) ] ) {
 # scenarios where our method is correctly spec
 temp = agg %>% filter(evil.selection == 0); dim(temp)
 ( t1.mn = make_winner_table(.agg = temp,
-                            summarise.fun.name = "mean" ) )
+                            summarise.fun.name = "median" ) )
 ( t1.worst = make_winner_table(.agg = temp,
                                summarise.fun.name = "worst10th" ) )
 
 # scenarios where our method is NOT correctly spec
 temp = agg %>% filter(evil.selection == 1); dim(temp)
 ( t1.mn = make_winner_table(.agg = temp,
-                            summarise.fun.name = "mean" ) )
+                            summarise.fun.name = "median" ) )
 ( t1.worst = make_winner_table(.agg = temp,
                                summarise.fun.name = "worst10th" ) )
 
 
-# scens with SWS
-temp = agg %>% filter(prob.hacked == 1); dim(temp)
-( t1.mn = make_winner_table(.agg = temp,
-                            summarise.fun.name = "mean" ) )
-( t1.worst = make_winner_table(.agg = temp,
-                               summarise.fun.name = "worst10th" ) )
+# # scens with SWS
+# temp = agg %>% filter(prob.hacked == 1); dim(temp)
+# ( t1.mn = make_winner_table(.agg = temp,
+#                             summarise.fun.name = "median" ) )
+# ( t1.worst = make_winner_table(.agg = temp,
+#                                summarise.fun.name = "worst10th" ) )
 
+
+## things suggested by reviewers
 
 # skewed effects
 temp = agg %>% filter(true.dist == "expo"); dim(temp)
 ( t1.mn = make_winner_table(.agg = temp,
-                            summarise.fun.name = "mean" ) )
+                            summarise.fun.name = "median" ) )
 ( t1.worst = make_winner_table(.agg = temp,
                                summarise.fun.name = "worst10th" ) )
 
+
+# large within-study SE
+#@do these :)
+
+# muB = 0.1
+
+# Mu = 0 (null)
+
+
+# report this in text
+# remember these are MEANS within scens
+summary(agg$sancheck.dp.k)
+summary(agg$sancheck.dp.k.affirm)
 
 
 

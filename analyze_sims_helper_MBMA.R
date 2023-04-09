@@ -835,7 +835,7 @@ init_var_names = function() {
   
   ### Names of parameter variables ###
   # figure out which scen params were actually manipulated
-  #@this assumes that "Nmax" is always the first param var and "method" is always the last
+  #@important: this assumes that "Nmax" is always the first param var and "method" is always the last
   ( param.vars <<- names(agg)[ which( names(agg) == "Nmax" ) : which( names(agg) == "method" ) ] )
   
   # how many levels does each param var have in dataset?

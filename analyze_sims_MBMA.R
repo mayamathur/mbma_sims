@@ -219,6 +219,14 @@ temp = agg %>% filter(evil.selection == 0); dim(temp)
 ( t1.worst = make_winner_table(.agg = temp,
                                summarise.fun.name = "worst10th" ) )
 
+# scenarios where our method is NOT correctly spec
+temp = agg %>% filter(evil.selection == 1); dim(temp)
+( t1.mn = make_winner_table(.agg = temp,
+                            summarise.fun.name = "mean" ) )
+( t1.worst = make_winner_table(.agg = temp,
+                               summarise.fun.name = "worst10th" ) )
+
+
 # scens with SWS
 temp = agg %>% filter(prob.hacked == 1); dim(temp)
 ( t1.mn = make_winner_table(.agg = temp,
@@ -234,12 +242,6 @@ temp = agg %>% filter(true.dist == "expo"); dim(temp)
 ( t1.worst = make_winner_table(.agg = temp,
                                summarise.fun.name = "worst10th" ) )
 
-# later (not run yet): evil.selection == 1 or == 0
-temp = agg %>% filter(evil.selection == 1); dim(temp)
-( t1.mn = make_winner_table(.agg = temp,
-                            summarise.fun.name = "mean" ) )
-( t1.worst = make_winner_table(.agg = temp,
-                               summarise.fun.name = "worst10th" ) )
 
 
 

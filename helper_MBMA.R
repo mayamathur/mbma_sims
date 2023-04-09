@@ -381,9 +381,8 @@ sim_meta_2 = function(Mu,
   # record overall within-study eta (called gamma in SAPH)
   # can't do this within studies because either the numerator or denominator will be zero
   #  (b/c only 1 favored draw per study)
-  #@new
-  #@all hack types need to return Fi indicator
-  #@BEWARE: need to calculate overall gamma BEFORE restricting to studies 
+  # all hack types need to return Fi indicator
+  # BEWARE: need to calculate overall gamma BEFORE restricting to studies, as we do here
   .dat$gamma = conditional_prob(.dat$Fi == 1, .dat$affirm == 1) / conditional_prob(.dat$Fi == 1, .dat$affirm == 0 )
   
   
@@ -569,8 +568,6 @@ sim_one_study_set = function(Nmax,  # max draws to try
   if ( Ci == 1 ) Bi = rnorm( mean = muB, sd = sqrt(sig2B), n = 1 )
   
   # doesn't have t2w because that applies to results within this study set
-  #@flag1: update this to allow other distributions besides rnorm
-  # population effect for this study set
   if ( true.dist == "norm" ){
     mui = Mu + Bi + rnorm(mean = 0,
                           sd = sqrt(t2a),
@@ -1107,7 +1104,7 @@ add_method_result_row = function(repRes = NA,
   
   # newRow = bind_cols( corrObject$metaCorr,
   #                 corrObject$sanityChecks )
-  #@TEMP: DON'T KEEP THE SANITY CHECKS BECAUSE CORRECT_META_PHACK2 doesn't have it
+  #TEMP: DON'T KEEP THE SANITY CHECKS BECAUSE CORRECT_META_PHACK2 doesn't have it
   newRow = corrObject$metaCorr
   
   newRow = newRow %>% add_column(.before = 1,

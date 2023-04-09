@@ -97,7 +97,7 @@ scen.params = tidyr::expand_grid(
 
   # SWS args
   # remember: method affirm will only work if prob.hacked < 1 else will never have nonaffirms
-  hack = c("affirm2", "favor-lowest-p", "favor-gamma-ratio"),
+  hack = c("affirm2", "favor-lowest-p"),
   rho = c(0),
   prob.hacked = c(1, 0),
 

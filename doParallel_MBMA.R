@@ -209,7 +209,6 @@ if ( run.local == TRUE ) {
   ### 2022-7-23 - debugging set ###
   scen.params = tidyr::expand_grid(
     
-    #@FEWER METHODS
     rep.methods = "naive ; mbma-MhatB",
     
     
@@ -749,8 +748,6 @@ doParallel.seconds = system.time({
       # ~~ Naive Meta-Analysis (All PUBLISHED Draws)
       
       if ( "naive" %in% all.methods ) {
-        #@temp
-        print("YES")
         rep.res = run_method_safe(method.label = c("naive"),
                                   method.fn = function() {
                                     mod = rma( yi = dp$yi,
@@ -1206,7 +1203,7 @@ doParallel.seconds = system.time({
       
       cat("\ndoParallel flag: Before adding sanity checks to rep.res")
       
-      #@temp debugging - figure out which of san checks fails
+      ### @temp debugging - figure out which of san checks throws "arg of length zero"
       cat( nrow(dp) )
       cat( sum(dp$affirm == TRUE) )
       cat( sum(dp$affirm == FALSE) )
@@ -1225,7 +1222,8 @@ doParallel.seconds = system.time({
                                NA ) )
       
       cat( shat2B )
-      #@end temp debugging
+      ### @end temp debugging
+      
       
       # add info about simulated datasets
       rep.res = rep.res %>% add_column(   sancheck.dp.k = nrow(dp),
@@ -1354,7 +1352,7 @@ doParallel.seconds = system.time({
     # aggregate results across multiple scens
     
     
-    #@temp
+    # # flags in case script fails
     cat( paste("\n\ndoParallel flag. nrow(new_rs):" ) ); nrow(new_rs)
     cat( paste("\n\ndoParallel flag. nrow(rs):" ) ); if (exists("rs")) nrow(rs)
     cat( paste("\n\ndoParallel flag. scens.to.run[1]:" ) ); scens.to.run[1]
@@ -1379,6 +1377,7 @@ doParallel.seconds = system.time({
 
 cat( paste("\n\ndoParallel flag. Done entire for-loop." ) )
 
+# temp debugging
 # dim(rs)
 # # quick look
 # rs %>% mutate(MhatWidth = MHi - MLo,
@@ -1408,7 +1407,6 @@ cat( paste("\n\ndoParallel flag. dim(rs):", dim(rs) ) )
 #  total computational time
 
 
-# @temp: avoid this part
 nMethods = length( unique(rs$method) )
 
 print(nMethods)
@@ -1424,14 +1422,12 @@ rs$doParallel.seconds = doParallel.seconds
 cat( paste("\ndoParallel flag. head(rs):" ) )
 print(head(rs))
 
-# rs$rep.seconds = doParallel.seconds/(sim.reps * length(scens.to.run))
-# rs$rep.seconds[ rs$method != unique(rs$method)[1] ] = NA
-# 
-# #rs$rep.seconds = rep( c( doParallel.seconds / sim.reps,
-# #                         rep( NA, nMethods - 1 ) ), sim.reps )
-# 
-# expect_equal( as.numeric( sum(rs$rep.seconds, na.rm = TRUE) ),
-#               as.numeric(doParallel.seconds) )
+rs$rep.seconds = doParallel.seconds/(sim.reps * length(scens.to.run))
+rs$rep.seconds[ rs$method != unique(rs$method)[1] ] = NA
+
+
+expect_equal( as.numeric( sum(rs$rep.seconds, na.rm = TRUE) ),
+              as.numeric(doParallel.seconds) )
 
 
 
@@ -1489,7 +1485,6 @@ if ( run.local == FALSE ) {
   
   
   # pre-aggregate 
-  #@later would make more sense to change it to short_results
   agg_job = make_agg_data(rs)
   setwd("/home/groups/manishad/MBMA/short_results")
   fwrite( agg_job, paste( "short_results", jobname, ".csv", sep="_" ) )

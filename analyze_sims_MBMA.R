@@ -17,6 +17,7 @@ library(data.table)
 library(tidyverse)
 library(fastDummies)
 library(xlsx)
+library(tableone)
 # meta-analysis packages
 library(metafor)
 library(robumeta)
@@ -47,11 +48,12 @@ overwrite.res = TRUE
 
 
 # ~~ Set directories -------------------------
+
 code.dir = here()
 
 data.dir = str_replace( string = here(),
                         pattern = "Code",
-                        replacement = "Results/temp" )
+                        replacement = "Results/2023-04-09 full sims for manuscript (RSM_1)" )
 
 
 # temp while sims are ongoing
@@ -61,19 +63,12 @@ results.dir = data.dir
 #                            replacement = "Results/*2022-7-23 More scens for manuscript; add mbma-MhatB-true-t2" )
 
 
-#@temp: commented out to avoid overwriting
-# overleaf.dir.figs = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/figures/sims"
-# 
-# # for stats_for_paper.csv
-# # same dir as for applied examples so that they'll write to single file
-# overleaf.dir.nums = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/R_objects"
 
+overleaf.dir.figs = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/figures/sims"
 
-# # alternative for running new simulations
-# data.dir = str_replace( string = here(),
-#                         pattern = "Code",
-#                         replacement = "Results2" )
-# results.dir = data.dir
+# for stats_for_paper.csv
+# same dir as for applied examples so that they'll write to single file
+overleaf.dir.nums = "/Users/mmathur/Dropbox/Apps/Overleaf/Multiple-bias meta-analysis Overleaf (MBMA)/R_objects"
 
 
 setwd(code.dir)
@@ -81,7 +76,7 @@ source("helper_MBMA.R")
 source("analyze_sims_helper_MBMA.R")
 
 
-# ~~ Temp only: check on sims in real time -------------------------
+# ~~ Get agg data -------------------------
 
 setwd(data.dir)
 aggo = fread("agg.csv")
@@ -89,78 +84,43 @@ aggo = fread("agg.csv")
 # check when the dataset was last modified to make sure we're working with correct version
 file.info( paste(data.dir, "agg.csv", sep="/") )$mtime
 
-nuni(aggo$scen.name)
+nrow(aggo)  # will exceed number of scens because of multiple methods
+expect_equal( 12980, nuni(aggo$scen.name) )
 
-# # for working with stitched directly
-# s = fread( "stitched.csv")
-# # check when the dataset was last modified to make sure we're working with correct version
-# file.info("stitched.csv")$mtime
-# 
-# if ( "method.1" %in% names(s) ) s = s %>% select(-method.1)
-# 
-# s %>% group_by(scen.name, method) %>%
-#   summarise(n(),
-#             mean(Mu),
-#             meanNA(Mhat),
-#             mean(is.na(Mhat)))
-# agg = make_agg_data(s)
 
+# prettify variable names
 agg = wrangle_agg_local(aggo)
 
-table(agg$method.pretty)
-table(agg$evil.selection)
+#@temp
+agg = agg %>% filter(!(method %in% c("mbma-MhatB-gamma", "maon-adj-MhatB")))
 
-#@temp: remove favor-gamma scens
-agg = agg %>% filter(hack != "favor-gamma-ratio")
-
+# for analyzing sims as they run:
 # which key scen params have run so far?
-library(tableone)
-param.vars.short = c(
-               "hack",
-               "k.pub.nonaffirm",
-               "prob.hacked",
-               
-               "eta",
-               "SAS.type",
-               
-               "true.dist",
-               "true.sei.expr",
-               
-               "muB",
-               "t2a"
-               )
+param.vars.short = c("hack",
+                     "k.pub.nonaffirm",
+                     "prob.hacked",
+                     
+                     "eta",
+                     "SAS.type",
+                     
+                     "true.dist",
+                     "true.sei.expr",
+                     
+                     "muB",
+                     "t2a",
+                     "sim.reps.actual")
 
 CreateCatTable(vars = param.vars.short,
                data = agg)
 
+#@why are there still favor-gamma-ratio scens?
 
 
-# for after running sims
-# # ~~ Get agg data -------------------------
-# 
-# # if only analyzing a single set of sims (no merging):
-# setwd(data.dir)
-# agg = fread( "agg.csv")
-# # check when the dataset was last modified to make sure we're working with correct version
-# file.info("agg.csv")$mtime
-# 
-# 
-# dim(agg)  # will exceed number of scens because of multiple methods
-# expect_equal( 90, nuni(agg$scen.name) )
-# 
-# # prettify variable names
-# agg = wrangle_agg_local(agg)
-# table(agg$method.pretty)
-# 
-# # look at number of actual sim reps
-# table(agg$sim.reps.actual)
-# 
-# 
-# # one-off for paper
-# update_result_csv( name = "n scens",
-#                    value = nuni(agg$scen.name),
-#                    .results.dir = results.dir,
-#                    .overleaf.dir = overleaf.dir.nums )
+# one-off for paper
+update_result_csv( name = "n scens",
+                   value = nuni(agg$scen.name),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
 
 
 # ~~ List variable names -------------------------
@@ -171,6 +131,8 @@ init_var_names()
 
 
 # *** BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
+
+#@ maybe don't put in paper since redundant with winner tables below?
 
 t = agg %>%
   filter( method %in% c("naive", "mbma-MhatB", "2psm", "beta-sm") ) %>%
@@ -183,7 +145,9 @@ t = agg %>%
             AbsBiasMd = median(MhatAbsBias),
             AbsBiasMax = max(MhatAbsBias),
             
-            MhatEstFail = median(MhatEstFail),
+            RMSEMin = min(MhatAbsBias),
+            RMSEMd = median(MhatAbsBias),
+            RMSEMax = max(MhatAbsBias),
             
             #*express coverage as percent
             CoverMin = 100*min(MhatCover),
@@ -191,7 +155,9 @@ t = agg %>%
             
             WidthMd = median(MhatWidth),
             WidthMin = min(MhatWidth),
-            WidthMax = max(MhatWidth)) 
+            WidthMax = max(MhatWidth),
+            
+            MhatEstFail = median(MhatEstFail) ) 
 
 t
 
@@ -211,9 +177,14 @@ for ( .col in names(t)[ 2 : ncol(t) ] ) {
 
 # all scenarios
 ( t1.mn = make_winner_table(.agg = agg,
-                       summarise.fun.name = "median" ) )
+                            summarise.fun.name = "median" ) )
 ( t1.worst = make_winner_table(.agg = agg,
-                          summarise.fun.name = "worst10th" ) )
+                               summarise.fun.name = "worst10th" ) )
+
+# test xtable
+#@bm: reorder the MhatBias column; then automate creation of all performance tables
+# oh yeah :)
+print( xtable( data.frame(t1.mn) ), include.rownames = FALSE )
 
 
 # scenarios where our method is correctly spec
@@ -271,9 +242,9 @@ yNames = c("MhatAbsBias",
            "MhatBias",
            "EtaGammaAssumed",  # in MBMA
            "EtaGammaHat",  # from 2PSM
-  "MhatRMSE",
-  "MhatCover",
-  "MhatEstFail")
+           "MhatRMSE",
+           "MhatCover",
+           "MhatEstFail")
 
 # specific eta so we can look at estimation
 temp = agg %>% filter(hack == "favor-gamma-ratio" & SAS.type == "2psm" & eta == 5 )
@@ -296,6 +267,71 @@ View(t1.mn)
 
 
 
+# CARTER PUB BIAS PLOT -------------------------
+
+
+dp = expand.grid(pval = seq(0.0001, 0.15, by = 0.001) )
+
+# parameters for carter_censor taken from sim_one_study_set
+dp = dp %>% rowwise() %>%
+  mutate( pub.prob = carter_censor( pObs = pval,
+                                    direction = 1, 
+                                    posSign_NS_baseRate = 0.3,
+                                    negSign_NS_baseRate = 0.05,
+                                    counterSig_rate = 0.50 ) )
+
+
+# key cutpoints
+x.breaks = seq(0, 0.15, 0.025)
+
+
+
+p = ggplot( data = dp, aes(
+  x = pval, 
+  y = pub.prob) ) +
+  geom_line() +
+  
+  # use only some values
+  #scale_x_log10( breaks = c(500, 1000) ) +
+  
+  xlab("Two-tailed p-value") +
+  scale_x_continuous( breaks = x.breaks ) +
+  
+  
+  ylab("Publication probability") +
+  scale_y_continuous( breaks = seq(0, 1, 0.1) ) +
+  
+  theme(legend.position = "bottom") +
+  
+  # base_size controls all text sizes; default is 11
+  # https://ggplot2.tidyverse.org/reference/ggtheme.html
+  theme_bw(base_size = 16) +
+  theme( text = element_text(face = "bold"),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank() ) 
+
+p
+
+if ( overwrite.res == TRUE ) {
+  my_ggsave( name = "carter_pubbias_plot.pdf",
+             .plot = p,
+             .width = 8,
+             .height = 6,
+             .results.dir = results.dir,
+             .overleaf.dir = overleaf.dir.figs )
+} else {
+  message("\n\nNot writing the plot to local dir or Overleaf because overwrite.res = FALSE")
+}
+
+
+
+
+
+
+
+
+
+###### TO REMOVE?
 
 # ******** PLOTS (BIG AND NOT PRETTIFIED) -------------------------
 
@@ -437,5 +473,5 @@ for ( i in 1:length(t2a.levels) ) {
                               .local.results.dir = pretty.results.dir )
 }
 
- 
+
 

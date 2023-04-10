@@ -354,7 +354,7 @@ sim_meta_2 = function(Mu,
     } else if ( SAS.type == "carter" ) {
       if ( sum(newRows$Fi) > 1 ) stop("Your hack type generates multiple favored draws per study, but SAS.type carter not implemented for this case")
       newRows$Di.across.prob[ newRows$Fi == 1 ] = carter_censor(pObs = newRows$pval[ newRows$Fi == 1 ],
-                                                                direction = ifelse( newRows$pval[ newRows$Fi == 1 ] > 0, 1, -1),
+                                                                direction = 1,  # always set direction to 1 regardless of sign for 2-tailed selection
                                                                 posSign_NS_baseRate = 0.3,
                                                                 negSign_NS_baseRate = 0.05,
                                                                 counterSig_rate = 0.50)
@@ -694,7 +694,7 @@ sim_one_study_set = function(Nmax,  # max draws to try
   
   
   # NEW - using Fi as within-study indicator
-  # for favor-lowest-p, consider all draws and favor the one with the lowest p-value
+  # for favor-lowest-p, consider all draws and favor the one with the lowest two-tailed p-value regardless of estimate sign
   if ( hack %in% c("favor-lowest-p") ) {
     d$Fi = 0
     best.pval = min(d$pval)
@@ -935,6 +935,7 @@ make_one_draw = function(mui,  # mean for this study set
              n = m)
   
   # run a one-sample t-test
+  # two-tailed p-value
   test = t.test(y,
                 alternative = "two.sided")
   

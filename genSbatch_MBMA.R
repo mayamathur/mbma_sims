@@ -79,10 +79,10 @@ lapply( allPackages,
 #   run.optimx = FALSE )
 
 
-### 2022-7-23 - full set ###
+### 2023-4-9 - full set ###
 scen.params = tidyr::expand_grid(
 
-  rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; maon-adj-MhatB ; 2psm ; beta-sm",
+  rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-gamma ; 2psm ; beta-sm",
 
 
   # args from sim_meta_2
@@ -113,7 +113,7 @@ scen.params = tidyr::expand_grid(
   # NOT using log scale here b/c underlying data are continuous
   muB = c(0.1, 0.25, 0.5),
   sig2B = 0.5,
-  prob.conf = c(0.5),
+  prob.conf = c(0.5, 1),
 
   # Stan control args - only relevant if running RTMA - remove these args?
   stan.maxtreedepth = 25,
@@ -199,7 +199,7 @@ source("helper_MBMA.R")
 #( n.files = ( n.reps.per.scen / n.reps.in.doParallel ) * n.scen )
 
 # sim.reps is now set only within doParallel
-n.scens.per.doParallel = 10  # doesn't need to be set inside doParallel
+n.scens.per.doParallel = 15  # doesn't need to be set inside doParallel
 ( n.files = n.scen / n.scens.per.doParallel )
 
 
@@ -222,7 +222,7 @@ sbatch_params <- data.frame(jobname,
                             outfile,
                             errorfile,
                             #  for k.pub.nonaffirm = 5 with 1000 sim.reps and 8 scens in doParallel, takes 50 min
-                            jobtime = "5:00:00",  
+                            jobtime = "10:00:00",  
                             quality = "normal",
                             node_number = 1,
                             mem_per_node = 64000,
@@ -245,7 +245,7 @@ n.files
 # run just the first one
 # sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/sbatch_files/1.sbatch
 
-# 2023-04-06: 864
+# 2023-04-09: 864
 path = "/home/groups/manishad/MBMA"
 setwd( paste(path, "/sbatch_files", sep="") )
 for (i in 1:864) {

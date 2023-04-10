@@ -92,6 +92,7 @@ expect_equal( 12980, nuni(aggo$scen.name) )
 agg = wrangle_agg_local(aggo)
 
 #@temp
+table(agg$method)
 agg = agg %>% filter(!(method %in% c("mbma-MhatB-gamma", "maon-adj-MhatB")))
 
 # for analyzing sims as they run:
@@ -107,14 +108,25 @@ param.vars.short = c("hack",
                      "true.sei.expr",
                      
                      "muB",
+                     "prob.conf",
                      "t2a",
                      "sim.reps.actual")
 
 CreateCatTable(vars = param.vars.short,
                data = agg)
 
-#@why are there still favor-gamma-ratio scens?
 
+
+
+
+# ~~ List variable names -------------------------
+
+# initialize global variables that describe estimate and outcome names, etc.
+# this must be after calling wrangle_agg_local
+init_var_names()
+
+
+# ONE-OFF STATS FOR PAPER  -------------------------
 
 # one-off for paper
 update_result_csv( name = "n scens",
@@ -123,11 +135,27 @@ update_result_csv( name = "n scens",
                    .overleaf.dir = overleaf.dir.nums )
 
 
-# ~~ List variable names -------------------------
+update_result_csv( name = "n scens evilselect0",
+                   value = nuni(agg$scen.name[ agg$evil.selection == 0]),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
 
-# initialize global variables that describe estimate and outcome names, etc.
-# this must be after calling wrangle_agg_local
-init_var_names()
+update_result_csv( name = "n scens evilselect1",
+                   value = nuni(agg$scen.name[ agg$evil.selection == 1]),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
+
+
+update_result_csv( name = "n scens skewed",
+                   value = nuni(agg$scen.name[ agg$true.dist == "expo"]),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
+
+
+# report this in text
+# remember these are MEANS within scens
+summary(agg$sancheck.dp.k)
+summary(agg$sancheck.dp.k.affirm)
 
 
 # *** BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
@@ -176,62 +204,34 @@ for ( .col in names(t)[ 2 : ncol(t) ] ) {
 
 
 # all scenarios
-( t1.mn = make_winner_table(.agg = agg,
-                            summarise.fun.name = "median" ) )
-( t1.worst = make_winner_table(.agg = agg,
-                               summarise.fun.name = "worst10th" ) )
-
-# test xtable
-#@bm: reorder the MhatBias column; then automate creation of all performance tables
-# oh yeah :)
-print( xtable( data.frame(t1.mn) ), include.rownames = FALSE )
+# here, reason SM-step appears unbiased is that it's positively biased under evil.selection=0
+#   but negatively biased under evil.selection=1
+make_both_winner_tables(.agg = agg)
 
 
-# scenarios where our method is correctly spec
-temp = agg %>% filter(evil.selection == 0); dim(temp)
-( t1.mn = make_winner_table(.agg = temp,
-                            summarise.fun.name = "median" ) )
-( t1.worst = make_winner_table(.agg = temp,
-                               summarise.fun.name = "worst10th" ) )
+# # diagnosis: scens with more confounding
+# make_both_winner_tables(.agg = agg %>% filter(muB == 0.5) )
+
+
+# scenarios where our method IS correctly spec
+make_both_winner_tables(.agg = agg %>% filter(evil.selection == 0) )
 
 # scenarios where our method is NOT correctly spec
-temp = agg %>% filter(evil.selection == 1); dim(temp)
-( t1.mn = make_winner_table(.agg = temp,
-                            summarise.fun.name = "median" ) )
-( t1.worst = make_winner_table(.agg = temp,
-                               summarise.fun.name = "worst10th" ) )
+make_both_winner_tables(.agg = agg %>% filter(evil.selection == 1) )
 
 
-# # scens with SWS
-# temp = agg %>% filter(prob.hacked == 1); dim(temp)
-# ( t1.mn = make_winner_table(.agg = temp,
-#                             summarise.fun.name = "median" ) )
-# ( t1.worst = make_winner_table(.agg = temp,
-#                                summarise.fun.name = "worst10th" ) )
-
-
-## things suggested by reviewers
 
 # skewed effects
-temp = agg %>% filter(true.dist == "expo"); dim(temp)
-( t1.mn = make_winner_table(.agg = temp,
-                            summarise.fun.name = "median" ) )
-( t1.worst = make_winner_table(.agg = temp,
-                               summarise.fun.name = "worst10th" ) )
+make_both_winner_tables(.agg = agg %>% filter(true.dist=="expo") )
 
 
-# large within-study SE
-#@do these :)
-
-# muB = 0.1
-
-# Mu = 0 (null)
+# other possibilities suggested by reviewers:
+# - large within-study SE
+# - muB = 0.1
+# - Mu = 0 (null)
 
 
-# report this in text
-# remember these are MEANS within scens
-summary(agg$sancheck.dp.k)
-summary(agg$sancheck.dp.k.affirm)
+
 
 
 

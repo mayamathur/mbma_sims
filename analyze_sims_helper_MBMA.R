@@ -368,53 +368,66 @@ make_winner_table_col = function(.agg,
   
   .agg$Y = .agg[[yName]]
   
-  higherBetterYNames = "MhatCover"
+  higherBetterYNames = c("MhatCover", "MhatEstConverge")
   
-  lowerBetterYNames = c("MhatBias", "MhatAbsBias", "MhatRMSE", "MhatWidth", "MhatEstFail")
+  lowerBetterYNames = c("MhatAbsBias", "MhatRMSE", "MhatWidth")
   
   if ( summarise.fun.name == "mean" ) {
-    t = .agg %>% filter(method %in% methods) %>%
+    .t = .agg %>% filter(method %in% methods) %>%
       group_by(method.pretty) %>%
       summarise( Y = round( mean(Y), digits = digits ) )
   }
   
   if ( summarise.fun.name == "median" ) {
-    t = .agg %>% filter(method %in% methods) %>%
+    .t = .agg %>% filter(method %in% methods) %>%
       group_by(method.pretty) %>%
       summarise( Y = round( median(Y), digits = digits ) )
   }
   
   if ( summarise.fun.name == "worst10th" & yName %in% higherBetterYNames ) {
-    t = .agg %>% filter(method %in% methods) %>%
+    .t = .agg %>% filter(method %in% methods) %>%
       group_by(method.pretty) %>%
       summarise( Y = round( quantile(Y, probs = 0.10), digits = digits ) )
   }
   
   if ( summarise.fun.name == "worst10th" & yName %in% lowerBetterYNames ) {
-    t = .agg %>% filter(method %in% methods) %>%
+    .t = .agg %>% filter(method %in% methods) %>%
       group_by(method.pretty) %>%
       summarise( Y = round( quantile(Y, probs = 0.90), digits = digits ) )
   }
   
+  # for bias, arrange by absolute value
+  # note that this isn't absolute bias
+  if ( summarise.fun.name == "worst10th" & yName %in% c("MhatBias") ) {
+    .t = .agg %>% filter(method %in% methods) %>%
+      group_by(method.pretty) %>%
+      summarise( Y = round( quantile( abs(Y), probs = 0.90), digits = digits ) )
+  }
   
   # sort best to worst
   if ( yName %in% lowerBetterYNames ) {
-    t = t %>% arrange(Y)
+    .t = .t %>% arrange(Y)
   }
   
   
   if ( yName %in% higherBetterYNames ) {
-    t = t %>% arrange( desc(Y) )
+    .t = .t %>% arrange( desc(Y) )
   }
   
-  names(t) = c(yName, summarise.fun.name)
-  t
+  # for bias, arrange by absolute value
+  # note that this isn't absolute bias
+  if ( yName %in% c("MhatBias") ) {
+    .t = .t %>% arrange( abs(Y) )
+  }
+  
+  names(.t) = c(yName, summarise.fun.name)
+  .t
 }
 
 
 
 make_winner_table = function( .agg,
-                              .yNames = c("MhatBias", "MhatAbsBias", "MhatRMSE", "MhatCover", "MhatWidth", "MhatEstFail"),
+                              .yNames = c("MhatBias", "MhatAbsBias", "MhatRMSE", "MhatCover", "MhatWidth", "MhatEstConverge"),
                               summarise.fun.name ){
   
   for ( .yName in .yNames ){
@@ -422,14 +435,38 @@ make_winner_table = function( .agg,
                                    yName = .yName,
                                    summarise.fun.name = summarise.fun.name )
     
-    if ( .yName == .yNames[1] ) t.all = newCol else t.all = bind_cols(t.all, newCol)
+    if ( .yName == .yNames[1] ) t.all = newCol else t.all = suppressMessages( bind_cols(t.all, newCol) )
   }
   
   
+  cat( paste("\n\n**** WINNER TABLE", summarise.fun.name) )
+  
+  cat( paste("\n\n     Number of scens:", nuni(.agg$scen.name),
+             "; proportion of all scens: ",
+             round( nuni(.agg$scen.name) / nuni(agg$scen.name) ), 3 ) )
+  
+  cat("\n\n")
+  
   t.all
+  
+  cat("\n\n")
+  print( xtable( data.frame(t.all) ), include.rownames = FALSE )
   
 }
 
+# makes both winner tables (medians and worst 10th pctiles)
+make_both_winner_tables = function( .agg,
+                                    .yNames = c("MhatBias", "MhatAbsBias", "MhatRMSE", "MhatCover", "MhatWidth", "MhatEstConverge") ){
+  
+  make_winner_table( .agg = .agg,
+                     .yNames = .yNames,
+                     summarise.fun.name = "median")
+  
+  make_winner_table( .agg = .agg,
+                      .yNames = .yNames,
+                      summarise.fun.name = "worst10th")
+  
+}
 
 # PLOTTING FNS -------------------------------------------------------------
 

@@ -95,6 +95,9 @@ agg = wrangle_agg_local(aggo)
 table(agg$method)
 agg = agg %>% filter(!(method %in% c("mbma-MhatB-gamma", "maon-adj-MhatB")))
 
+# make new var
+agg$MhatEstConverge = 1 - agg$MhatEstFail
+
 # for analyzing sims as they run:
 # which key scen params have run so far?
 param.vars.short = c("hack",
@@ -128,7 +131,7 @@ init_var_names()
 
 # ONE-OFF STATS FOR PAPER  -------------------------
 
-# one-off for paper
+# scenario counts
 update_result_csv( name = "n scens",
                    value = nuni(agg$scen.name),
                    .results.dir = results.dir,
@@ -145,17 +148,33 @@ update_result_csv( name = "n scens evilselect1",
                    .results.dir = results.dir,
                    .overleaf.dir = overleaf.dir.nums )
 
+update_result_csv( name = "n scens smallk",
+                   value = nuni(agg$scen.name[ agg$k.pub.nonaffirm == 5]),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
 
 update_result_csv( name = "n scens skewed",
                    value = nuni(agg$scen.name[ agg$true.dist == "expo"]),
                    .results.dir = results.dir,
                    .overleaf.dir = overleaf.dir.nums )
 
+# convergence
+update_result_csv( name = "beta-sm convergence",
+                   value = round( 100*median(agg$MhatEstConverge[agg$method == "beta-sm"]), 0 ),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
 
-# report this in text
-# remember these are MEANS within scens
-summary(agg$sancheck.dp.k)
-summary(agg$sancheck.dp.k.affirm)
+# sample sizes
+update_result_csv( name = paste( "sancheck.dp.k", c("Q1", "median", "Q3") ),
+                   value = round( summary(agg$sancheck.dp.k)[2:4], 0 ),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
+
+update_result_csv( name = paste( "sancheck.dp.k.affirm", c("Q1", "median", "Q3") ),
+                   value = round( summary(agg$sancheck.dp.k.affirm)[2:4], 0 ),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
+
 
 
 # *** BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
@@ -219,18 +238,20 @@ make_both_winner_tables(.agg = agg %>% filter(evil.selection == 0) )
 # scenarios where our method is NOT correctly spec
 make_both_winner_tables(.agg = agg %>% filter(evil.selection == 1) )
 
-
+# small k.pub.nonaffirm
+make_both_winner_tables(.agg = agg %>% filter(k.pub.nonaffirm == 5) )
 
 # skewed effects
 make_both_winner_tables(.agg = agg %>% filter(true.dist=="expo") )
+
+
+
 
 
 # other possibilities suggested by reviewers:
 # - large within-study SE
 # - muB = 0.1
 # - Mu = 0 (null)
-
-
 
 
 

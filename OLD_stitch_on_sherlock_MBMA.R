@@ -1,5 +1,4 @@
 
-
 # EDIT: THIS RUNS OUT OF MEMORY. NOW USING THE NEW COPY.
 
 # run this interactively in ml load R or via:
@@ -38,14 +37,63 @@ source("analyze_sims_helper_MBMA.R")
 library(data.table)
 library(dplyr)
 library(testthat)
-library(doParallel)
-
-# set the number of cores
-num_cores <- 16
-registerDoParallel(num_cores)
 
 
+# ##### NEW - stitch pre-aggregated things
+# 
+# .results.singles.path = "/home/groups/manishad/MBMA/short_results"
+# .results.stitched.write.path = "/home/groups/manishad/MBMA/stitched_results"
+# .name.prefix = "short_results"
+# .stitch.file.name="agg.csv"
+# 
+# # get list of all files in folder
+# all.files = list.files(.results.singles.path, full.names=TRUE)
+# 
+# # we only want the ones whose name includes .name.prefix
+# keepers = all.files[ grep( .name.prefix, all.files ) ]
+# length(keepers)
+# 
+# # grab variable names from first file
+# names = names( read.csv(keepers[1] ) )
+# 
+# # read in and rbind the keepers
+# tables <- lapply( keepers, function(x) read.csv(x, header= TRUE) )
+# 
+# # sanity check: do all files have the same names?
+# # if not, could be because some jobs were killed early so didn't get doParallelTime
+# #  variable added at the end
+# #  can be verified by looking at out-file for a job without name "doParallelTime"
+# allNames = lapply( tables, names )
+# # # find out which jobs had wrong number of names
+# # lapply( allNames, function(x) all.equal(x, names ) )
+# # allNames[[1]][ !allNames[[1]] %in% allNames[[111]] ]
+# 
+# # bind_rows works even if datasets have different names
+# #  will fill in NAs
+# agg <- do.call(bind_rows, tables)
+# 
+# names(agg) = names( read.csv(keepers[1], header= TRUE) )
+# 
+# if( is.na(agg[1,1]) ) agg = agg[-1,]  # delete annoying NA row
+# # write.csv(s, paste(.results.stitched.write.path, .stitch.file.name, sep="/") )
+# 
+# cat("\n\n nrow(agg) =", nrow(agg))
+# cat("\n nuni(agg$scen.name) =", nuni(agg$scen.name) )
+
+
+
+
+
+
+
+
+##### OLD - stitch individual rows
 # MAKE STITCHED DATA ----------------------------------------------
+
+# s = stitch_files(.results.singles.path = "/home/groups/manishad/MBMA/sim_results/long",
+#                  .results.stitched.write.path = "/home/groups/manishad/MBMA/sim_results/overall_stitched",
+#                  .name.prefix = "long_results",
+#                  .stitch.file.name="stitched.csv")
 
 .results.singles.path = "/home/groups/manishad/MBMA/long_results"
 .results.stitched.write.path = "/home/groups/manishad/MBMA/stitched_results"
@@ -63,26 +111,14 @@ length(keepers)
 # grab variable names from first file
 names = names( read.csv(keepers[1] ) )
 
-# read in and rbind the keepers in parallel
-rbind_tables <- function(files) {
-  tables <- lapply(files, fread)
-  rbindlist(tables, fill = TRUE)
-}
+# read in and rbind the keepers
+tables <- lapply( keepers, function(x) read.csv(x, header= TRUE) )
 
-split_files <- split(keepers, 1:length(keepers) %% num_cores)
-tables <- foreach(i = 1:length(split_files), .packages = c("data.table")) %dopar% {
-  rbind_tables(split_files[[i]])
-}
-
-# combine the results
-s <- rbindlist(tables, fill = TRUE)
-
-# SAVE
 # sanity check: do all files have the same names?
 # if not, could be because some jobs were killed early so didn't get doParallelTime
 #  variable added at the end
 #  can be verified by looking at out-file for a job without name "doParallelTime"
-# allNames = lapply( tables, names )
+allNames = lapply( tables, names )
 # # find out which jobs had wrong number of names
 # lapply( allNames, function(x) all.equal(x, names ) )
 # allNames[[1]][ !allNames[[1]] %in% allNames[[111]] ]

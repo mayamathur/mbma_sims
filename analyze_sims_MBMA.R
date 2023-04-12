@@ -87,6 +87,9 @@ file.info( paste(data.dir, "agg.csv", sep="/") )$mtime
 nrow(aggo)  # will exceed number of scens because of multiple methods
 expect_equal( 12980, nuni(aggo$scen.name) )
 
+# proportion done
+nuni(aggo$scen.name) / 12980
+
 
 # prettify variable names
 agg = wrangle_agg_local(aggo)

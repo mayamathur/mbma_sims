@@ -221,8 +221,12 @@ runfile_path = paste(path, "/testRunFile.R", sep="")
 sbatch_params <- data.frame(jobname,
                             outfile,
                             errorfile,
-                            #  for k.pub.nonaffirm = 5 with 1000 sim.reps and 8 scens in doParallel, takes 50 min
-                            jobtime = "10:00:00",  
+                            #  2023-4-9 sims: used 10:00:00 for initial run, which worked for ~75% of sbatch files
+                            #  the others (mostly with large-k scens) timed out, so I then increased jobtime to 1 day
+                            #  and re-ran the missed sbatches
+                            #  info about job time limits: https://www.sherlock.stanford.edu/docs/advanced-topics/job-management/#job-submission-limits
+                            # jobtime = "10:00:00", 
+                            jobtime = "1-00:00:00", 
                             quality = "normal",
                             node_number = 1,
                             mem_per_node = 64000,
@@ -261,10 +265,10 @@ path = "/home/groups/manishad/MBMA"
 setwd(path)
 source("helper_MBMA.R")
 
-missed.nums = sbatch_not_run( "/home/groups/manishad/MBMA/long_results",
-                              "/home/groups/manishad/MBMA/long_results",
-                              .name.prefix = "long_results",
-                              .max.sbatch.num = 45 )
+missed.nums = sbatch_not_run( "/home/groups/manishad/MBMA/short_results",
+                              "/home/groups/manishad/MBMA/short_results",
+                              .name.prefix = "short_results",
+                              .max.sbatch.num = 864 )
 
 
 

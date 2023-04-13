@@ -858,22 +858,22 @@ sim_plot_multiple_outcomes = function( .t2a,  # subset to be analyzed
 # initialize global variables that describe estimate and outcome names, etc.
 init_var_names = function() {
   
-  ### Names of statistical metrics ###
-  # used later to create plots and tables, but needed to check var types 
-  #  upon reading in data
-  estNames <<- c("Mhat", "Shat")
-  
-  # blank entry is to get Mhat itself, which is useful for 
-  #  looking at whether MAON>0
-  mainYNames <<- c("Bias", "", "RMSE", "Cover", "Width", "EmpSE")
-  
-  otherYNames <<- c("EstFail", "CIFail", "RhatGt1.01", "RhatGt1.05")
-  
-  # these ones don't fit in nicely because the "Mhat" is in the middle of string
-  #"OptimxPropAgreeConvergersMhatWinner", "OptimxNAgreeOfConvergersMhatWinner"
-  MhatMainYNames <<- paste( "Mhat", c(mainYNames), sep = "" )
-  MhatYNames <<- c( paste( "Mhat", c(mainYNames, otherYNames), sep = "" ) )
-  #"OptimxPropAgreeConvergersMhatWinner", "OptimxNAgreeOfConvergersMhatWinner" )
+  # ### Names of statistical metrics ###
+  # # used later to create plots and tables, but needed to check var types 
+  # #  upon reading in data
+  # estNames <<- c("Mhat", "Shat")
+  # 
+  # # blank entry is to get Mhat itself, which is useful for 
+  # #  looking at whether MAON>0
+  # mainYNames <<- c("Bias", "", "RMSE", "Cover", "Width", "EmpSE")
+  # 
+  # otherYNames <<- c("EstFail", "CIFail", "RhatGt1.01", "RhatGt1.05")
+  # 
+  # # these ones don't fit in nicely because the "Mhat" is in the middle of string
+  # #"OptimxPropAgreeConvergersMhatWinner", "OptimxNAgreeOfConvergersMhatWinner"
+  # MhatMainYNames <<- paste( "Mhat", c(mainYNames), sep = "" )
+  # MhatYNames <<- c( paste( "Mhat", c(mainYNames, otherYNames), sep = "" ) )
+  # #"OptimxPropAgreeConvergersMhatWinner", "OptimxNAgreeOfConvergersMhatWinner" )
   
   
   ### Names of parameter variables ###
@@ -892,10 +892,10 @@ init_var_names = function() {
   if ( "t2a" %in% param.vars.manip ) param.vars.manip <<- drop_vec_elements( param.vars.manip, c("S", "V") )
   
   
-  ( param.vars.manip2 <<- drop_vec_elements(param.vars.manip, "method") )
+  ( param.vars.manip <<- drop_vec_elements(param.vars.manip, "method") )
   
   cat( paste("\n\nManipulated parameter vars: ",
-             paste(param.vars.manip2, collapse= ", ") ) )
+             paste(param.vars.manip, collapse= ", ") ) )
   
 }
 
@@ -1083,6 +1083,8 @@ update_result_csv = function( name,
                               .overleaf.dir = NULL,
                               value = NA,
                               print = FALSE ) {
+  
+  print(value)
   
   # if either is NULL, it just won't be included in this vector
   dirs = c(.results.dir, .overleaf.dir)

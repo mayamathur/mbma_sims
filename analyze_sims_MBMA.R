@@ -5,7 +5,7 @@
 
 # PRELIMINARIES ----------------------------------------------------
 
-#rm(list=ls())
+#  rm(list=ls())
 
 # data-wrangling packages
 library(here)
@@ -94,6 +94,11 @@ nuni(aggo$scen.name) / 12980
 # prettify variable names
 agg = wrangle_agg_local(aggo)
 
+
+# initialize global variables that describe estimate and outcome names, etc.
+# this must be after calling wrangle_agg_local
+init_var_names()
+
 #@temp
 table(agg$method)
 agg = agg %>% filter(!(method %in% c("mbma-MhatB-gamma", "maon-adj-MhatB")))
@@ -103,22 +108,7 @@ agg$MhatEstConverge = 1 - agg$MhatEstFail
 
 # for analyzing sims as they run:
 # which key scen params have run so far?
-param.vars.short = c("hack",
-                     "k.pub.nonaffirm",
-                     "prob.hacked",
-                     
-                     "eta",
-                     "SAS.type",
-                     
-                     "true.dist",
-                     "true.sei.expr",
-                     
-                     "muB",
-                     "prob.conf",
-                     "t2a",
-                     "sim.reps.actual")
-
-CreateCatTable(vars = param.vars.short,
+CreateCatTable(vars = param.vars.manip,  # param.vars.manip is from init_var_names
                data = agg)
 
 
@@ -127,9 +117,7 @@ CreateCatTable(vars = param.vars.short,
 
 # ~~ List variable names -------------------------
 
-# initialize global variables that describe estimate and outcome names, etc.
-# this must be after calling wrangle_agg_local
-init_var_names()
+
 
 
 # ONE-OFF STATS FOR PAPER  -------------------------
@@ -180,7 +168,7 @@ update_result_csv( name = paste( "sancheck.dp.k.affirm", c("Q1", "median", "Q3")
 
 
 
-# *** BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
+# BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
 
 #@ maybe don't put in paper since redundant with winner tables below?
 
@@ -248,46 +236,11 @@ make_both_winner_tables(.agg = agg %>% filter(k.pub.nonaffirm == 5) )
 make_both_winner_tables(.agg = agg %>% filter(true.dist=="expo") )
 
 
-
-
-
 # other possibilities suggested by reviewers:
 # - large within-study SE
 # - muB = 0.1
 # - Mu = 0 (null)
 
-
-
-
-# ******** TEMP: PERFORMANCE UNDER HACKING -------------------------
-
-
-yNames = c("MhatAbsBias",
-           "MhatBias",
-           "EtaGammaAssumed",  # in MBMA
-           "EtaGammaHat",  # from 2PSM
-           "MhatRMSE",
-           "MhatCover",
-           "MhatEstFail")
-
-# specific eta so we can look at estimation
-temp = agg %>% filter(hack == "favor-gamma-ratio" & SAS.type == "2psm" & eta == 5 )
-
-t1.mn = make_winner_table(.agg = temp,
-                          .yNames = yNames,
-                          summarise.fun.name = "mean")
-
-View(t1.mn)
-
-
-# all evil selection mechanisms
-temp = agg %>% filter(prob.hacked == 1 )
-
-t1.mn = make_winner_table(.agg = temp,
-                          .yNames = yNames,
-                          summarise.fun.name = "mean")
-
-View(t1.mn)
 
 
 

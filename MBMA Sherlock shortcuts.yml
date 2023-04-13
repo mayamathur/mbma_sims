@@ -44,8 +44,11 @@ rsync -a --delete /home/groups/manishad/MBMA/empty_dir/ /home/groups/manishad/MB
 
 # run stitch job
 sbatch -p qsu,owners,normal /home/groups/manishad/MBMA/job_stitch.sbatch
-# 15207073
-# sacct --jobs=15207073
+# 15727893
+# sacct --jobs=15727893
+# look at its outfiles:
+less /home/groups/manishad/MBMA/rmfiles/rm_stitch.err
+less /home/groups/manishad/MBMA/rmfiles/rm_stitch.out
 
 # how long did most recent jobs take?
 sacct --format=JobID,account,Timelimit,elapsed,ReqMem,MaxRss,ExitCode

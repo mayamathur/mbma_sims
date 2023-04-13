@@ -4,10 +4,10 @@
 #SBATCH --job-name=job_stitch
 #################  
 #a file for job output, you can check job progress
-#SBATCH --output=rm_stitch.out
+#SBATCH --output=/home/groups/manishad/MBMA/rmfiles/rm_stitch.out
 #################
 # a file for errors from the job
-#SBATCH --error=rm_stitch.err
+#SBATCH --error=/home/groups/manishad/MBMA/rmfiles/rm_stitch.err
 #################
 #time you think you need; default is one hour
 #SBATCH --time=00:30:00

@@ -77,6 +77,11 @@ tables <- foreach(i = 1:length(split_files), .packages = c("data.table")) %dopar
 # combine the results
 s <- rbindlist(tables, fill = TRUE)
 
+# alternative (ChatGPT says this is slower than rbindlist)
+# bind_rows works even if datasets have different names
+#  will fill in NAs
+#s <- do.call(bind_rows, tables)
+
 # SAVE
 # sanity check: do all files have the same names?
 # if not, could be because some jobs were killed early so didn't get doParallelTime
@@ -87,17 +92,26 @@ s <- rbindlist(tables, fill = TRUE)
 # lapply( allNames, function(x) all.equal(x, names ) )
 # allNames[[1]][ !allNames[[1]] %in% allNames[[111]] ]
 
-# bind_rows works even if datasets have different names
-#  will fill in NAs
-s <- do.call(bind_rows, tables)
 
-names(s) = names( read.csv(keepers[1], header= TRUE) )
+
+# this line now breaks
+#names(s) = names( read.csv(keepers[1], header= TRUE) )
+
+print(names(s))
+
+# TEMP ONLY - debugging
+setwd(.results.stitched.write.path)
+fwrite(s, .stitch.file.name)
+string = paste("zip -m stitched.zip", .stitch.file.name)
+system(string)
+
 
 if( is.na(s[1,1]) ) s = s[-1,]  # delete annoying NA row
 # write.csv(s, paste(.results.stitched.write.path, .stitch.file.name, sep="/") )
 
 cat("\n\n nrow(s) =", nrow(s))
 cat("\n nuni(s$scen.name) =", nuni(s$scen.name) )
+
 
 # ~ Check for Bad Column Names ---------------------------
 
@@ -134,49 +148,74 @@ system(string)
 
 
 
+# MAKE AGG DATA - FROM PRE-AGGREGATED SHORT RESULTS ----------------------------------------------
 
-# MAKE AGG DATA ----------------------------------------------
+# can be run in interactive session
+.results.singles.path = "/home/groups/manishad/MBMA/short_results"
+.results.stitched.write.path = "/home/groups/manishad/MBMA/stitched_results"
+.name.prefix = "short_results"
+.stitch.file.name="agg.csv"
 
-path = "/home/groups/manishad/MBMA"
-setwd(path)
-source("helper_MBMA.R")
-source("analyze_sims_helper_MBMA.R")
+
+# get list of all files in folder
+all.files = list.files(.results.singles.path, full.names=TRUE)
+
+# we only want the ones whose name includes .name.prefix
+keepers = all.files[ grep( .name.prefix, all.files ) ]
+length(keepers)
+
+# grab variable names from first file
+names = names( read.csv(keepers[1] ) )
+
+#bm
+# read in and rbind the keepers in parallel
+rbind_tables <- function(files) {
+  tables <- lapply(files, fread)
+  rbindlist(tables, fill = TRUE)
+}
+
+split_files <- split(keepers, 1:length(keepers) %% num_cores)
+
+tables <- foreach(i = 1:length(split_files), .packages = c("data.table")) %dopar% {
+  rbind_tables(split_files[[i]])
+}
+
+# combine the results
+agg <- rbindlist(tables, fill = TRUE)
 
 
-agg = make_agg_data(s)
 
+# write it
 setwd(.results.stitched.write.path)
-fwrite(agg, "agg.csv")
-
-
-# table(agg$method.pretty)
-
-cat("\n\n nrow(agg) =", nrow(agg))
-cat("\n nuni(agg$scen.name) =", nuni(agg$scen.name) )
-
-# # OPTIONAL: shorter version of agg that's nicer to look at
-# agg.short = agg %>% select(prob.hacked, prob.conf, method, Mhat, MhatBias, MhatCover, MhatWidth,
-#                            #MhatEstFail, MhatCIFail,
-#                            sancheck.dp.k.nonaffirm.unhacked, sancheck.dp.k.nonaffirm.hacked) %>%
-#   filter( !( method %in% c("rtma-adj-pmed", "rtma-adj-pmean") ) ) %>%
-#   mutate_if(is.numeric, function(x) round(x,2))
-#   
-# setwd(.results.stitched.write.path)
-# fwrite(agg.short, "agg_short.csv")
+fwrite(agg, .stitch.file.name)
 
 
 
+# MAKE AGG DATA - FROM S ----------------------------------------------
 
-# # look again at failures
-# t = agg %>% group_by(k.pub.nonaffirm, method) %>%
-#   summarise( mean(MhatEstFail),
-#              mean(MhatCIFail)
-#              )
-# as.data.frame(t)
-# 
-# 
-# # errors of 2PSM when it fails
-# table( s$overall.error[ s$method == "2psm" & is.na(s$Mhat) ] )
+# make agg data from the enormous dataframe, s
+# can run out of memory
+
+if (FALSE) {
+  path = "/home/groups/manishad/MBMA"
+  setwd(path)
+  source("helper_MBMA.R")
+  source("analyze_sims_helper_MBMA.R")
+  
+  
+  agg = make_agg_data(s)
+  
+  setwd(.results.stitched.write.path)
+  fwrite(agg, "agg.csv")
+  
+  
+  # table(agg$method.pretty)
+  
+  cat("\n\n nrow(agg) =", nrow(agg))
+  cat("\n nuni(agg$scen.name) =", nuni(agg$scen.name) )
+  
+}
+
 
 
 

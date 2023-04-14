@@ -32,6 +32,7 @@ library(truncnorm)
 library(tmvtnorm)
 library(RColorBrewer)
 library(sjmisc)
+library(broom)
 
 # prevent masking
 select = dplyr::select
@@ -139,6 +140,11 @@ update_result_csv( name = "n scens evilselect1",
                    .results.dir = results.dir,
                    .overleaf.dir = overleaf.dir.nums )
 
+update_result_csv( name = "prop scens evilselect1",
+                   value = round( 100*mean(agg$evil.selection == 1) ),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
+
 update_result_csv( name = "n scens smallk",
                    value = nuni(agg$scen.name[ agg$k.pub.nonaffirm == 5]),
                    .results.dir = results.dir,
@@ -148,6 +154,18 @@ update_result_csv( name = "n scens skewed",
                    value = nuni(agg$scen.name[ agg$true.dist == "expo"]),
                    .results.dir = results.dir,
                    .overleaf.dir = overleaf.dir.nums )
+
+update_result_csv( name = "n scens large SEs",
+                   value = nuni(agg$scen.name[ agg$true.sei.expr == "0.02 + rexp(n = 1, rate = 1)"]),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
+
+
+update_result_csv( name = "n scens small muB",
+                   value = nuni(agg$scen.name[ agg$muB == 0.1]),
+                   .results.dir = results.dir,
+                   .overleaf.dir = overleaf.dir.nums )
+
 
 # convergence
 update_result_csv( name = "beta-sm convergence",
@@ -210,30 +228,28 @@ for ( .col in names(t)[ 2 : ncol(t) ] ) {
 }
 
 
-# ******** RANKED PERFORMANCE TABLES -------------------------
+# ******** WINNER TABLES -------------------------
 
+# ~ Winner tables shown in paper ------------------------------
 
-# all scenarios
+# 1: all scenarios
+make_both_winner_tables(.agg = agg)
 # here, reason SM-step appears unbiased is that it's positively biased under evil.selection=0
 #   but negatively biased under evil.selection=1
-make_both_winner_tables(.agg = agg)
 
 
-# # diagnosis: scens with more confounding
-# make_both_winner_tables(.agg = agg %>% filter(muB == 0.5) )
-
-
-# scenarios where our method IS correctly spec
+# 2: scenarios where our method IS correctly spec
 make_both_winner_tables(.agg = agg %>% filter(evil.selection == 0) )
 
-# scenarios where our method is NOT correctly spec
+# 3: scenarios where our method is NOT correctly spec
 make_both_winner_tables(.agg = agg %>% filter(evil.selection == 1) )
 
-# small k.pub.nonaffirm
+# 4: small k.pub.nonaffirm
 make_both_winner_tables(.agg = agg %>% filter(k.pub.nonaffirm == 5) )
 
-# skewed effects
-make_both_winner_tables(.agg = agg %>% filter(true.dist=="expo") )
+# 5: small mean bias
+make_both_winner_tables(.agg = agg %>% filter(muB == 0.1) )
+make_both_winner_tables(.agg = agg %>% filter(muB > 0.1) )
 
 
 # other possibilities suggested by reviewers:
@@ -242,10 +258,50 @@ make_both_winner_tables(.agg = agg %>% filter(true.dist=="expo") )
 # - Mu = 0 (null)
 
 
+# ~ Winner tables with results discussed only in prose  --------------------------------------------
+
+# 6: skewed effects
+make_both_winner_tables(.agg = agg %>% filter(true.dist=="expo") )
+
+
+# For Reviewer 3's questions
+# 7: larger within-study SEs
+make_both_winner_tables(.agg = agg %>% filter(true.sei.expr == "0.02 + rexp(n = 1, rate = 1)") )
+make_both_winner_tables(.agg = agg %>% filter(true.sei.expr == "0.02 + rexp(n = 1, rate = 3)") )
+
+#bm
+
+
+# ~ Winner tables for own curiosity --------------------------------------------
+
+# scens without vs. with p-hacking
+make_both_winner_tables(.agg = agg %>% filter(prob.hacked == 0) )
+make_both_winner_tables(.agg = agg %>% filter(prob.hacked == 1) )
+
+
+# scens with SAS.type=carter
+make_both_winner_tables(.agg = agg %>% filter(SAS.type == "carter") )
+
+
+
+
+# REGRESSIONS -------------------------
+
+# under what conditions are our method and SM-step NEGATIVELY biased?
+
+.method = "mbma-MhatB"
+( string = paste( "(MhatBias < 0) ~", paste(param.vars.manip, collapse = "+"), sep="" ) )
+tidy( lm( eval(parse(text=string)),
+          data = agg %>% filter(method == .method) ) )
+
+
+.method = "2psm"
+tidy( lm( eval(parse(text=string)),
+          data = agg %>% filter(method == .method) ) )
+
 
 
 # CARTER PUB BIAS PLOT -------------------------
-
 
 dp = expand.grid(pval = seq(0.0001, 0.15, by = 0.001) )
 

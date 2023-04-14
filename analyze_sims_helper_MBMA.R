@@ -425,10 +425,11 @@ make_winner_table_col = function(.agg,
 }
 
 
-
+# display: "xtable" or "dataframe"
 make_winner_table = function( .agg,
                               .yNames = c("MhatBias", "MhatAbsBias", "MhatRMSE", "MhatCover", "MhatWidth", "MhatEstConverge"),
-                              summarise.fun.name ){
+                              summarise.fun.name,
+                              display = "dataframe"){
   
   for ( .yName in .yNames ){
     newCol = make_winner_table_col(.agg = .agg,
@@ -443,14 +444,19 @@ make_winner_table = function( .agg,
   
   cat( paste("\n\n     Number of scens:", nuni(.agg$scen.name),
              "; proportion of all scens: ",
-             round( nuni(.agg$scen.name) / nuni(agg$scen.name) ), 3 ) )
+             round( nuni(.agg$scen.name) / nuni(agg$scen.name), 3 ) ) )
   
   cat("\n\n")
   
-  t.all
+  if (display == "xtable") {
+    print( xtable( data.frame(t.all) ), include.rownames = FALSE )
+  }
+
+  if (display == "dataframe") {
+    print( data.frame(t.all) )
+  }
   
-  cat("\n\n")
-  print( xtable( data.frame(t.all) ), include.rownames = FALSE )
+  #return(t.all)
   
 }
 

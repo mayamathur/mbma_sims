@@ -112,6 +112,7 @@ agg$MhatEstConverge = 1 - agg$MhatEstFail
 CreateCatTable(vars = param.vars.manip,  # param.vars.manip is from init_var_names
                data = agg)
 
+#@later: what's up with the scens that have SAS.type or hack empty?
 
 
 
@@ -186,46 +187,46 @@ update_result_csv( name = paste( "sancheck.dp.k.affirm", c("Q1", "median", "Q3")
 
 
 
-# BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
-
-#@ maybe don't put in paper since redundant with winner tables below?
-
-t = agg %>%
-  filter( method %in% c("naive", "mbma-MhatB", "2psm", "beta-sm") ) %>%
-  group_by(method) %>%
-  summarise(BiasMin = min(MhatBias),
-            BiasMd = median(MhatBias),
-            BiasMax = max(MhatBias),
-            
-            AbsBiasMin = min(MhatAbsBias),
-            AbsBiasMd = median(MhatAbsBias),
-            AbsBiasMax = max(MhatAbsBias),
-            
-            RMSEMin = min(MhatAbsBias),
-            RMSEMd = median(MhatAbsBias),
-            RMSEMax = max(MhatAbsBias),
-            
-            #*express coverage as percent
-            CoverMin = 100*min(MhatCover),
-            CoverMd = 100*median(MhatCover),
-            
-            WidthMd = median(MhatWidth),
-            WidthMin = min(MhatWidth),
-            WidthMax = max(MhatWidth),
-            
-            MhatEstFail = median(MhatEstFail) ) 
-
-t
-
-# go through each outcome column in table (e.g., BiasMin) and write
-#  results for each method to csv
-for ( .col in names(t)[ 2 : ncol(t) ] ) {
-  
-  update_result_csv( name = paste( t$method, .col, sep = " " ),
-                     value = t[[.col]],
-                     .results.dir = results.dir,
-                     .overleaf.dir = overleaf.dir.nums )
-}
+# # BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
+# 
+# #@ maybe don't put in paper since redundant with winner tables below?
+# 
+# t = agg %>%
+#   filter( method %in% c("naive", "mbma-MhatB", "2psm", "beta-sm") ) %>%
+#   group_by(method) %>%
+#   summarise(BiasMin = min(MhatBias),
+#             BiasMd = median(MhatBias),
+#             BiasMax = max(MhatBias),
+#             
+#             AbsBiasMin = min(MhatAbsBias),
+#             AbsBiasMd = median(MhatAbsBias),
+#             AbsBiasMax = max(MhatAbsBias),
+#             
+#             RMSEMin = min(MhatAbsBias),
+#             RMSEMd = median(MhatAbsBias),
+#             RMSEMax = max(MhatAbsBias),
+#             
+#             #*express coverage as percent
+#             CoverMin = 100*min(MhatCover),
+#             CoverMd = 100*median(MhatCover),
+#             
+#             WidthMd = median(MhatWidth),
+#             WidthMin = min(MhatWidth),
+#             WidthMax = max(MhatWidth),
+#             
+#             MhatEstFail = median(MhatEstFail) ) 
+# 
+# t
+# 
+# # go through each outcome column in table (e.g., BiasMin) and write
+# #  results for each method to csv
+# for ( .col in names(t)[ 2 : ncol(t) ] ) {
+#   
+#   update_result_csv( name = paste( t$method, .col, sep = " " ),
+#                      value = t[[.col]],
+#                      .results.dir = results.dir,
+#                      .overleaf.dir = overleaf.dir.nums )
+# }
 
 
 # ******** WINNER TABLES -------------------------

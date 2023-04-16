@@ -86,9 +86,8 @@ aggo = fread("agg.csv")
 file.info( paste(data.dir, "agg.csv", sep="/") )$mtime
 
 nrow(aggo)  # will exceed number of scens because of multiple methods
-expect_equal( 12980, nuni(aggo$scen.name) )
 
-# proportion done
+# proportion of full-factorial scens that were able to run
 nuni(aggo$scen.name) / 12980
 
 
@@ -100,24 +99,15 @@ agg = wrangle_agg_local(aggo)
 # this must be after calling wrangle_agg_local
 init_var_names()
 
-#@temp
+# remove experimental methods
 table(agg$method)
 agg = agg %>% filter(!(method %in% c("mbma-MhatB-gamma", "maon-adj-MhatB")))
 
-# make new var
-agg$MhatEstConverge = 1 - agg$MhatEstFail
 
 # for analyzing sims as they run:
 # which key scen params have run so far?
 CreateCatTable(vars = param.vars.manip,  # param.vars.manip is from init_var_names
                data = agg)
-
-#@later: what's up with the scens that have SAS.type or hack empty?
-
-
-
-
-# ~~ List variable names -------------------------
 
 
 
@@ -187,51 +177,14 @@ update_result_csv( name = paste( "sancheck.dp.k.affirm", c("Q1", "median", "Q3")
 
 
 
-# # BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
-# 
-# #@ maybe don't put in paper since redundant with winner tables below?
-# 
-# t = agg %>%
-#   filter( method %in% c("naive", "mbma-MhatB", "2psm", "beta-sm") ) %>%
-#   group_by(method) %>%
-#   summarise(BiasMin = min(MhatBias),
-#             BiasMd = median(MhatBias),
-#             BiasMax = max(MhatBias),
-#             
-#             AbsBiasMin = min(MhatAbsBias),
-#             AbsBiasMd = median(MhatAbsBias),
-#             AbsBiasMax = max(MhatAbsBias),
-#             
-#             RMSEMin = min(MhatAbsBias),
-#             RMSEMd = median(MhatAbsBias),
-#             RMSEMax = max(MhatAbsBias),
-#             
-#             #*express coverage as percent
-#             CoverMin = 100*min(MhatCover),
-#             CoverMd = 100*median(MhatCover),
-#             
-#             WidthMd = median(MhatWidth),
-#             WidthMin = min(MhatWidth),
-#             WidthMax = max(MhatWidth),
-#             
-#             MhatEstFail = median(MhatEstFail) ) 
-# 
-# t
-# 
-# # go through each outcome column in table (e.g., BiasMin) and write
-# #  results for each method to csv
-# for ( .col in names(t)[ 2 : ncol(t) ] ) {
-#   
-#   update_result_csv( name = paste( t$method, .col, sep = " " ),
-#                      value = t[[.col]],
-#                      .results.dir = results.dir,
-#                      .overleaf.dir = overleaf.dir.nums )
-# }
-
 
 # ******** WINNER TABLES -------------------------
 
 # ~ Winner tables shown in paper ------------------------------
+
+# can toggle output of fn below by changing the default arg of 
+#  make_winner_table between display = "dataframe" (easy viewing)
+#  and display = "xtable" (Overleaf)
 
 # 1: all scenarios
 make_both_winner_tables(.agg = agg)
@@ -250,7 +203,8 @@ make_both_winner_tables(.agg = agg %>% filter(k.pub.nonaffirm == 5) )
 
 # 5: small mean bias
 make_both_winner_tables(.agg = agg %>% filter(muB == 0.1) )
-make_both_winner_tables(.agg = agg %>% filter(muB > 0.1) )
+# c.f.: other values
+# make_both_winner_tables(.agg = agg %>% filter(muB > 0.1) )
 
 
 # other possibilities suggested by reviewers:
@@ -268,9 +222,9 @@ make_both_winner_tables(.agg = agg %>% filter(true.dist=="expo") )
 # For Reviewer 3's questions
 # 7: larger within-study SEs
 make_both_winner_tables(.agg = agg %>% filter(true.sei.expr == "0.02 + rexp(n = 1, rate = 1)") )
-make_both_winner_tables(.agg = agg %>% filter(true.sei.expr == "0.02 + rexp(n = 1, rate = 3)") )
+# c.f.: smaller SEs
+# make_both_winner_tables(.agg = agg %>% filter(true.sei.expr == "0.02 + rexp(n = 1, rate = 3)") )
 
-#bm
 
 
 # ~ Winner tables for own curiosity --------------------------------------------
@@ -365,147 +319,190 @@ if ( overwrite.res == TRUE ) {
 
 
 
-###### TO REMOVE?
+###### NO LONGER IN PAPER AFTER EXPANDING SIM STUDY
 
-# ******** PLOTS (BIG AND NOT PRETTIFIED) -------------------------
+# # PLOTS (BIG AND NOT PRETTIFIED) -------------------------
+# 
+# Ynames = rev(MhatYNames)
+# 
+# # alternatively, run just a subset:
+# Ynames = c("MhatWidth", "MhatCover", "MhatBias", "MhatRMSE")
+# 
+# # to help decide which vars to include in plot:
+# param.vars.manip2
+# 
+# 
+# # in case you want to filter scens:
+# # full set for reference:
+# # c("naive", "gold-std", "maon", "2psm", "pcurve", "jeffreys-mcmc-pmean", 
+# #   "jeffreys-mcmc-pmed", "jeffreys-mcmc-max-lp-iterate", "jeffreys-sd", 
+# #   "jeffreys-var", "mle-sd", "csm-mle-sd", "mle-var", "2psm-csm-dataset", 
+# #   "prereg-naive", "ltn-mle-sd")
+# ( all.methods = unique(agg$method) )
+# # toDrop = c("rtma-adj-MhatB-pmed",
+# #            "rtma-adj-muB-pmed",
+# #            "rtma-adj-MhatB-pmean",
+# #            'rtma-adj-muB-pmean')
+# toDrop = NULL
+# method.keepers = all.methods[ !all.methods %in% toDrop ]
+# 
+# 
+# # make facetted plotly
+# 
+# for ( .t2a in unique(agg$t2a) ) {
+#   
+#   # # test only
+#   # .hack = "affirm"
+#   # .t2a = 0.25
+#   
+#   cat( paste("\n\n -------- STARTING t2a=", .t2a) )
+#   
+#   aggp = agg %>% filter(method %in% method.keepers &
+#                           t2a == .t2a)
+#   # to label the plots
+#   prefix = paste( "2022-7-23 sims; ",
+#                   "t2a=", .t2a,
+#                   sep = "")
+#   
+#   
+#   # temporarily set wd
+#   # results.dir.temp = paste(results.dir,
+#   #                          "/Big unprettified plots/",
+#   #                          .Mu,
+#   #                          "/hack=",
+#   #                          .hack,
+#   #                          sep = "")
+#   
+#   results.dir.temp = paste(results.dir,
+#                            "/Big unprettified plots",
+#                            sep = "")
+#   
+#   
+#   # set facetting variables for plots
+#   aggp$tempFacetVar1 = paste( "muB=", aggp$muB,
+#                               sep = "")
+#   
+#   aggp$tempFacetVar2 = as.factor( paste( "eta=", aggp$eta,
+#                                          sep = "") )
+#   levels(aggp$tempFacetVar2) = c("eta=1", "eta=5", "eta=10")
+#   # force factor ordering
+#   table(aggp$tempFacetVar2)
+#   
+#   
+#   for ( Yname in Ynames) {
+#     
+#     # to run "manually"
+#     #Yname = "MhatBias"
+#     #Yname = "MhatCover"
+#     
+#     y.breaks = NULL
+#     if ( Yname == "MhatBias") y.breaks = round( seq(-0.6, 0.7, 0.1), 2)
+#     if ( Yname == "MhatWidth") y.breaks = seq(0, 2, 0.2)
+#     
+#     p  = quick_5var_agg_plot(.Xname = "k.pub.nonaffirm",
+#                              .Yname = Yname,
+#                              .colorVarName = "method",
+#                              .facetVar1Name = "tempFacetVar1",
+#                              .facetVar2Name = "tempFacetVar2",
+#                              .dat = aggp,
+#                              .ggtitle = prefix,
+#                              .y.breaks = y.breaks,
+#                              .writePlot = FALSE,
+#                              .results.dir = results.dir.temp)
+#     
+#     
+#     pl = ggplotly(p)
+#     
+#     # in filename, mark the most important plots with asterisk
+#     if ( Yname %in% c("MhatBias", "MhatCover", "MhatWidth") ){
+#       new.prefix = paste("*", prefix, sep = "")
+#     } else {
+#       new.prefix = prefix
+#     }
+#     
+#     # how to save a plotly as html
+#     # https://www.biostars.org/p/458325/
+#     setwd(results.dir.temp)
+#     string = paste(new.prefix, Yname, "plotly.html", sep="_")
+#     htmlwidgets::saveWidget(pl, string)
+#     
+#   }
+#   
+# }
+# 
+# 
+# 
+# 
+# # PLOTS (SIMPLE AND PRETTY FOR MAIN TEXT) -------------------------
+# 
+# # for each hack type, arrange plots so each facet row is an outcome
+# ( all.methods = unique(agg$method.pretty) )
+# toDrop = c("MBMA (true t2)", "MAN adjusted")  # methods to exclude from plots
+# ( method.keepers = all.methods[ !is.na(all.methods) &
+#                                   !(all.methods %in% toDrop) ] )
+# 
+# 
+# # outcomes to show in main text figures
+# YnamesMain = c("MhatBias", "MhatCover", "MhatWidth")
+# 
+# 
+# 
+# pretty.results.dir = paste(results.dir, "/Prettified plots", sep = "")
+# 
+# t2a.levels = unique(agg$t2a)
+# 
+# # this dataset will be one full-page figure in main text or Supp depending on hack type
+# # by default, these write only to Overleaf dir
+# 
+# for ( i in 1:length(t2a.levels) ) {
+#   taui = sqrt(t2a.levels[i])
+#   sim_plot_multiple_outcomes( .t2a = t2a.levels[i],
+#                               .ggtitle = bquote( tau ~ " = " ~ .(taui) ),
+#                               .local.results.dir = pretty.results.dir )
+# }
+# 
+# 
 
-Ynames = rev(MhatYNames)
-
-# alternatively, run just a subset:
-Ynames = c("MhatWidth", "MhatCover", "MhatBias", "MhatRMSE")
-
-# to help decide which vars to include in plot:
-param.vars.manip2
-
-
-# in case you want to filter scens:
-# full set for reference:
-# c("naive", "gold-std", "maon", "2psm", "pcurve", "jeffreys-mcmc-pmean", 
-#   "jeffreys-mcmc-pmed", "jeffreys-mcmc-max-lp-iterate", "jeffreys-sd", 
-#   "jeffreys-var", "mle-sd", "csm-mle-sd", "mle-var", "2psm-csm-dataset", 
-#   "prereg-naive", "ltn-mle-sd")
-( all.methods = unique(agg$method) )
-# toDrop = c("rtma-adj-MhatB-pmed",
-#            "rtma-adj-muB-pmed",
-#            "rtma-adj-MhatB-pmean",
-#            'rtma-adj-muB-pmean')
-toDrop = NULL
-method.keepers = all.methods[ !all.methods %in% toDrop ]
-
-
-# make facetted plotly
-
-for ( .t2a in unique(agg$t2a) ) {
-  
-  # # test only
-  # .hack = "affirm"
-  # .t2a = 0.25
-  
-  cat( paste("\n\n -------- STARTING t2a=", .t2a) )
-  
-  aggp = agg %>% filter(method %in% method.keepers &
-                          t2a == .t2a)
-  # to label the plots
-  prefix = paste( "2022-7-23 sims; ",
-                  "t2a=", .t2a,
-                  sep = "")
-  
-  
-  # temporarily set wd
-  # results.dir.temp = paste(results.dir,
-  #                          "/Big unprettified plots/",
-  #                          .Mu,
-  #                          "/hack=",
-  #                          .hack,
-  #                          sep = "")
-  
-  results.dir.temp = paste(results.dir,
-                           "/Big unprettified plots",
-                           sep = "")
-  
-  
-  # set facetting variables for plots
-  aggp$tempFacetVar1 = paste( "muB=", aggp$muB,
-                              sep = "")
-  
-  aggp$tempFacetVar2 = as.factor( paste( "eta=", aggp$eta,
-                                         sep = "") )
-  levels(aggp$tempFacetVar2) = c("eta=1", "eta=5", "eta=10")
-  # force factor ordering
-  table(aggp$tempFacetVar2)
-  
-  
-  for ( Yname in Ynames) {
-    
-    # to run "manually"
-    #Yname = "MhatBias"
-    #Yname = "MhatCover"
-    
-    y.breaks = NULL
-    if ( Yname == "MhatBias") y.breaks = round( seq(-0.6, 0.7, 0.1), 2)
-    if ( Yname == "MhatWidth") y.breaks = seq(0, 2, 0.2)
-    
-    p  = quick_5var_agg_plot(.Xname = "k.pub.nonaffirm",
-                             .Yname = Yname,
-                             .colorVarName = "method",
-                             .facetVar1Name = "tempFacetVar1",
-                             .facetVar2Name = "tempFacetVar2",
-                             .dat = aggp,
-                             .ggtitle = prefix,
-                             .y.breaks = y.breaks,
-                             .writePlot = FALSE,
-                             .results.dir = results.dir.temp)
-    
-    
-    pl = ggplotly(p)
-    
-    # in filename, mark the most important plots with asterisk
-    if ( Yname %in% c("MhatBias", "MhatCover", "MhatWidth") ){
-      new.prefix = paste("*", prefix, sep = "")
-    } else {
-      new.prefix = prefix
-    }
-    
-    # how to save a plotly as html
-    # https://www.biostars.org/p/458325/
-    setwd(results.dir.temp)
-    string = paste(new.prefix, Yname, "plotly.html", sep="_")
-    htmlwidgets::saveWidget(pl, string)
-    
-  }
-  
-}
-
-
-
-
-# ******** PLOTS (SIMPLE AND PRETTY FOR MAIN TEXT) -------------------------
-
-# for each hack type, arrange plots so each facet row is an outcome
-( all.methods = unique(agg$method.pretty) )
-toDrop = c("MBMA (true t2)", "MAN adjusted")  # methods to exclude from plots
-( method.keepers = all.methods[ !is.na(all.methods) &
-                                  !(all.methods %in% toDrop) ] )
-
-
-# outcomes to show in main text figures
-YnamesMain = c("MhatBias", "MhatCover", "MhatWidth")
-
-
-
-pretty.results.dir = paste(results.dir, "/Prettified plots", sep = "")
-
-t2a.levels = unique(agg$t2a)
-
-# this dataset will be one full-page figure in main text or Supp depending on hack type
-# by default, these write only to Overleaf dir
-
-for ( i in 1:length(t2a.levels) ) {
-  taui = sqrt(t2a.levels[i])
-  sim_plot_multiple_outcomes( .t2a = t2a.levels[i],
-                              .ggtitle = bquote( tau ~ " = " ~ .(taui) ),
-                              .local.results.dir = pretty.results.dir )
-}
+# # BEST AND WORST PERFORMANCE ACROSS SCENS -------------------------
+# 
+# # now redundant with winner tables
+# 
+# t = agg %>%
+#   filter( method %in% c("naive", "mbma-MhatB", "2psm", "beta-sm") ) %>%
+#   group_by(method) %>%
+#   summarise(BiasMin = min(MhatBias),
+#             BiasMd = median(MhatBias),
+#             BiasMax = max(MhatBias),
+#             
+#             AbsBiasMin = min(MhatAbsBias),
+#             AbsBiasMd = median(MhatAbsBias),
+#             AbsBiasMax = max(MhatAbsBias),
+#             
+#             RMSEMin = min(MhatAbsBias),
+#             RMSEMd = median(MhatAbsBias),
+#             RMSEMax = max(MhatAbsBias),
+#             
+#             #*express coverage as percent
+#             CoverMin = 100*min(MhatCover),
+#             CoverMd = 100*median(MhatCover),
+#             
+#             WidthMd = median(MhatWidth),
+#             WidthMin = min(MhatWidth),
+#             WidthMax = max(MhatWidth),
+#             
+#             MhatEstFail = median(MhatEstFail) ) 
+# 
+# t
+# 
+# # go through each outcome column in table (e.g., BiasMin) and write
+# #  results for each method to csv
+# for ( .col in names(t)[ 2 : ncol(t) ] ) {
+#   
+#   update_result_csv( name = paste( t$method, .col, sep = " " ),
+#                      value = t[[.col]],
+#                      .results.dir = results.dir,
+#                      .overleaf.dir = overleaf.dir.nums )
+# }
 
 
 

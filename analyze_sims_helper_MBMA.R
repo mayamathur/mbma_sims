@@ -296,6 +296,9 @@ make_agg_data = function( .s,
 # Can be run locally even when agg is huge
 # This fn is separate from make_agg_data because it needs more frequent modification
 wrangle_agg_local = function(agg) {
+  
+  agg = agg %>% filter( !is.na(scen.name) )
+  
   ##### Make New Variables At Scenario Level ##### 
   
   # label methods more intelligently for use in plots
@@ -339,13 +342,7 @@ wrangle_agg_local = function(agg) {
                                  .default = levels(agg$true.dist) )
   
   
-  # agg$SAS.type = as.factor(agg$SAS.type)
-  # agg$SAS.type.pretty = dplyr::recode( agg$SAS.type,
-  #                                       "2psm" = "Step function",
-  #                                       "carter" = "Exponential",
-  #                                       
-  #                                       # by default, retain original factor level
-  #                                       .default = levels(agg$true.dist) )
+  agg$MhatEstConverge = 1 - agg$MhatEstFail
   
   agg$rho.pretty = paste("rho = ", agg$rho, sep = "")
   

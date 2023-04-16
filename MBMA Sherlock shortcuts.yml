@@ -1,7 +1,7 @@
 
 
 ssh mmathur@login.sherlock.stanford.edu
-S.cyril381
+
 
 # push all code files
 scp /Users/mmathur/Dropbox/Personal\ computer/Independent\ studies/2020/Multiple-bias\ meta-analysis\ \(MBMA\)/Linked\ to\ OSF\ \(MBMA\)/Simulation\ study/Code/* mmathur@login.sherlock.stanford.edu:/home/groups/manishad/MBMA

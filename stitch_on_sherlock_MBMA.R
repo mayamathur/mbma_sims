@@ -99,12 +99,6 @@ s <- rbindlist(tables, fill = TRUE)
 
 print(names(s))
 
-# TEMP ONLY - debugging
-setwd(.results.stitched.write.path)
-fwrite(s, .stitch.file.name)
-string = paste("zip -m stitched.zip", .stitch.file.name)
-system(string)
-
 
 if( is.na(s[1,1]) ) s = s[-1,]  # delete annoying NA row
 # write.csv(s, paste(.results.stitched.write.path, .stitch.file.name, sep="/") )
@@ -146,7 +140,10 @@ fwrite(s, .stitch.file.name)
 string = paste("zip -m stitched.zip", .stitch.file.name)
 system(string)
 
+# zip the resultsls
 
+# zip -r /home/groups/manishad/MBMA/stitched_results/short_results.zip /home/groups/manishad/MBMA/short_results
+# zip -r /home/groups/manishad/MBMA/stitched_results/long_results.zip /home/groups/manishad/MBMA/long_results
 
 # MAKE AGG DATA - FROM S ----------------------------------------------
 

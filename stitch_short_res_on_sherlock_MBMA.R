@@ -92,13 +92,11 @@ fwrite(agg, .stitch.file.name)
 
 
 
-# ZIP THE LONG RESULTS ----------------------------------------------
+# ZIP THE SHORT RESULTS ----------------------------------------------
 
 
-# also make a zipped version
-setwd("/home/groups/manishad/MBMA")
-string = paste("zip -r long_results.zip long_results/")
-system(string)
+# zip the results (can be run from any directory on Sherlock)
+# zip -r /home/groups/manishad/MBMA/stitched_results/short_results.zip /home/groups/manishad/MBMA/short_results
 
 
 

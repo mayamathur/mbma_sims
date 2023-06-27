@@ -357,200 +357,141 @@ wrangle_agg_local = function(agg) {
 
 # RESULTS TABLES FNS -------------------------------------------------------------
 
+
 make_winner_table_col = function(.agg,
                                  yName,
-                                 methods = c("naive", "mbma-MhatB", "mbma-MhatB-gamma", "2psm", "beta-sm"),
+                                 methods = c("naive",
+                                             "mbma-MhatB",
+                                             "mbma-MhatB-gamma",
+                                             "2psm",
+                                             "beta-sm"),
                                  summarise.fun.name = "median",
                                  digits = 2) {
   
-  .agg$Y = .agg[[yName]]
+  # # test only
+  # .agg = agg
+  # yName = "MhatCover"
+  # methods = c("naive",
+  #             "gold-std",
+  #             "maon",
+  #             "2psm",
+  #             "pcurve",
+  #             "pet-peese",
+  #             "robma",
+  #             "jeffreys-mcmc-pmean",
+  #             "jeffreys-mcmc-pmed",
+  #             "jeffreys-mcmc-max-lp-iterate",
+  #             "prereg-naive")
+  # summarise.fun.name = "worst10th"
+  # digits = 2
   
-  higherBetterYNames = c("MhatCover", "MhatEstConverge")
+  
+  # sanity check
+  if ( any( is.na( .agg$method.pretty ) ) ) {
+    stop(".agg has NAs in method.pretty; will mess up group_by")
+  }
+  
+  
+  higherBetterYNames = c("MhatEstConverge")
   
   lowerBetterYNames = c("MhatAbsBias", "MhatRMSE", "MhatWidth")
   
+  # Y_disp is what will be DISPLAYED in the table (e.g., retaining signs)
+  .agg$Y_disp = .agg[[yName]]
+  
+  ##### Summarize Y_disp #####
   if ( summarise.fun.name == "mean" ) {
     .t = .agg %>% filter(method %in% methods) %>%
       group_by(method.pretty) %>%
-      summarise( Y = round( mean(Y), digits = digits ) )
+      summarise( Y_disp = round( mean(Y_disp), digits = digits ) )
   }
   
   if ( summarise.fun.name == "median" ) {
     .t = .agg %>% filter(method %in% methods) %>%
       group_by(method.pretty) %>%
-      summarise( Y = round( median(Y), digits = digits ) )
+      summarise( Y_disp = round( median(Y_disp), digits = digits ) )
   }
   
   if ( summarise.fun.name == "worst10th" & yName %in% higherBetterYNames ) {
     .t = .agg %>% filter(method %in% methods) %>%
       group_by(method.pretty) %>%
-      summarise( Y = round( quantile(Y, probs = 0.10), digits = digits ) )
+      summarise( Y_disp = round( quantile(Y_disp, probs = 0.10), digits = digits ) )
   }
   
   if ( summarise.fun.name == "worst10th" & yName %in% lowerBetterYNames ) {
     .t = .agg %>% filter(method %in% methods) %>%
       group_by(method.pretty) %>%
-      summarise( Y = round( quantile(Y, probs = 0.90), digits = digits ) )
+      summarise( Y_disp = round( quantile(Y_disp, probs = 0.90), digits = digits ) )
   }
   
-  #@THIS PART IS WRONG - THE TABLE WILL BE IN TERMS OF ABS VALUES EVEN THOUGH LABEL 
-  #  IS MHATBIAS. COPY IN THE APPROACH FROM SAPH; FN INCLUDED BELOW THIS ONE.
-  # for bias, arrange by absolute value
-  # note that this isn't absolute bias
+  # for bias, worst 10% performance is in terms of absolute value of bias
+  # note this isn't abs bias
   if ( summarise.fun.name == "worst10th" & yName %in% c("MhatBias") ) {
     .t = .agg %>% filter(method %in% methods) %>%
       group_by(method.pretty) %>%
-      summarise( Y = round( quantile( abs(Y), probs = 0.90), digits = digits ) )
+      summarise( Y_disp = round( bias_worst10th(Y_disp), digits = digits ) )
   }
+  # sanity check
+  #quantile(.agg$MhatBias[.agg$method.pretty == "MAN"], probs = c(0.1, .9))
+  
+  # MhatCover gets summarized simply as 10th percentile
+  if ( summarise.fun.name == "worst10th" & yName %in% c("MhatCover") ) {
+    .t = .agg %>% filter(method %in% methods) %>%
+      group_by(method.pretty) %>%
+      summarise( Y_disp = round( quantile(Y_disp, probs = 0.10, na.rm = TRUE), digits = digits ) )
+  }
+  # sanity check
+  #quantile(.agg$MhatCover[.agg$method.pretty == "MAN"], probs = c(0.1))
+  #quantile(.agg$MhatCover[.agg$method.pretty == "RoBMA"], probs = c(0.1))
+  
+  
+  ##### Sort Best to Worst #####
+  
+  # Y_sort is the version that is used to compare and sort performances 
+  # designed so that higher values are always better
+  #  e.g., -abs(coverage-0.95)
+  if ( yName %in% higherBetterYNames ) {
+    .t$Y_sort = .t$Y_disp
+  }
+  if ( yName %in% lowerBetterYNames ) {
+    .t$Y_sort = -.t$Y_disp
+  }
+  if ( yName %in% "MhatBias" ) {
+    .t$Y_sort = -abs(.t$Y_disp)
+  }
+  if ( yName %in% "MhatCover" ) {
+    .t$Y_sort = -abs(.t$Y_disp - 0.95)
+  }
+  
   
   # sort best to worst
-  if ( yName %in% lowerBetterYNames ) {
-    .t = .t %>% arrange(Y)
-  }
+  .t = .t %>% arrange( desc(Y_sort) )
   
+  # remove unneeded col
+  .t = .t %>% select(-Y_sort)
   
-  if ( yName %in% higherBetterYNames ) {
-    .t = .t %>% arrange( desc(Y) )
-  }
-  
-  # for bias, arrange by absolute value
-  # note that this isn't absolute bias
-  if ( yName %in% c("MhatBias") ) {
-    .t = .t %>% arrange( abs(Y) )
-  }
   
   names(.t) = c(yName, summarise.fun.name)
   .t
 }
 
+# example
+# make_winner_table_col(.agg = agg,
+#                       yName = "MhatCover",
+#                       summarise.fun.name = "median")
+# make_winner_table_col(.agg = agg,
+#                       yName = "MhatCover",
+#                       summarise.fun.name = "worst10th")
 
 
-#@FROM SAPH: FOR FIXING ABOVE FN
-# make_winner_table_col = function(.agg,
-#                                  yName,
-#                                  methods = c("naive",
-#                                              "gold-std",
-#                                              "maon",
-#                                              "2psm",
-#                                              "pcurve",
-#                                              "pet-peese", 
-#                                              "robma",
-#                                              "jeffreys-mcmc-pmean",
-#                                              "jeffreys-mcmc-pmed",
-#                                              "jeffreys-mcmc-max-lp-iterate", 
-#                                              "prereg-naive"),
-#                                  summarise.fun.name = "median",
-#                                  digits = 2) {
-#   
-#   # # test only
-#   # .agg = agg
-#   # yName = "MhatCover"
-#   # methods = c("naive",
-#   #             "gold-std",
-#   #             "maon",
-#   #             "2psm",
-#   #             "pcurve",
-#   #             "pet-peese",
-#   #             "robma",
-#   #             "jeffreys-mcmc-pmean",
-#   #             "jeffreys-mcmc-pmed",
-#   #             "jeffreys-mcmc-max-lp-iterate",
-#   #             "prereg-naive")
-#   # summarise.fun.name = "worst10th"
-#   # digits = 2
-#   
-#   
-#   # sanity check
-#   if ( any( is.na( .agg$method.pretty ) ) ) {
-#     stop(".agg has NAs in method.pretty; will mess up group_by")
-#   }
-#   
-#   
-#   higherBetterYNames = c("MhatEstConverge")
-#   
-#   lowerBetterYNames = c("MhatAbsBias", "MhatRMSE", "MhatWidth")
-#   
-#   # Y_disp is what will be DISPLAYED in the table (e.g., retaining signs)
-#   .agg$Y_disp = .agg[[yName]]
-#   
-#   
-#   ##### Summarize Y_disp #####
-#   if ( summarise.fun.name == "mean" ) {
-#     .t = .agg %>% filter(method %in% methods) %>%
-#       group_by(method.pretty) %>%
-#       summarise( Y_disp = round( mean(Y_disp), digits = digits ) )
-#   }
-#   
-#   if ( summarise.fun.name == "median" ) {
-#     .t = .agg %>% filter(method %in% methods) %>%
-#       group_by(method.pretty) %>%
-#       summarise( Y_disp = round( median(Y_disp), digits = digits ) )
-#   }
-#   
-#   if ( summarise.fun.name == "worst10th" & yName %in% higherBetterYNames ) {
-#     .t = .agg %>% filter(method %in% methods) %>%
-#       group_by(method.pretty) %>%
-#       summarise( Y_disp = round( quantile(Y_disp, probs = 0.10), digits = digits ) )
-#   }
-#   
-#   if ( summarise.fun.name == "worst10th" & yName %in% lowerBetterYNames ) {
-#     .t = .agg %>% filter(method %in% methods) %>%
-#       group_by(method.pretty) %>%
-#       summarise( Y_disp = round( quantile(Y_disp, probs = 0.90), digits = digits ) )
-#   }
-#   
-#   # for bias, worst 10% performance is in terms of absolute value of bias
-#   # note this isn't abs bias
-#   if ( summarise.fun.name == "worst10th" & yName %in% c("MhatBias") ) {
-#     .t = .agg %>% filter(method %in% methods) %>%
-#       group_by(method.pretty) %>%
-#       summarise( Y_disp = round( bias_worst10th(Y_disp), digits = digits ) )
-#   }
-#   # sanity check
-#   #quantile(.agg$MhatBias[.agg$method.pretty == "MAN"], probs = c(0.1, .9))
-#   
-#   # MhatCover gets summarized simply as 10th percentile
-#   if ( summarise.fun.name == "worst10th" & yName %in% c("MhatCover") ) {
-#     .t = .agg %>% filter(method %in% methods) %>%
-#       group_by(method.pretty) %>%
-#       summarise( Y_disp = round( quantile(Y_disp, probs = 0.10), digits = digits ) )
-#   }
-#   # sanity check
-#   #quantile(.agg$MhatCover[.agg$method.pretty == "MAN"], probs = c(0.1))
-#   #quantile(.agg$MhatCover[.agg$method.pretty == "RoBMA"], probs = c(0.1))
-#   
-#   #@@@@****LEAVE SELF NOTE IN MBMA!
-#   
-#   
-#   ##### Sort Best to Worst #####
-#   
-#   # Y_sort is the version that is used to compare and sort performances 
-#   # designed so that higher values are always better
-#   #  e.g., -abs(coverage-0.95)
-#   if ( yName %in% higherBetterYNames ) {
-#     .t$Y_sort = .t$Y_disp
-#   }
-#   if ( yName %in% lowerBetterYNames ) {
-#     .t$Y_sort = -.t$Y_disp
-#   }
-#   if ( yName %in% "MhatBias" ) {
-#     .t$Y_sort = -abs(.t$Y_disp)
-#   }
-#   if ( yName %in% "MhatCover" ) {
-#     .t$Y_sort = -abs(.t$Y_disp - 0.95)
-#   }
-#   
-#   
-#   # sort best to worst
-#   .t = .t %>% arrange( desc(Y_sort) )
-#   
-#   # remove unneeded col
-#   .t = .t %>% select(-Y_sort)
-#   
-#   
-#   names(.t) = c(yName, summarise.fun.name)
-#   .t
-# }
+# for summarizing bias
+bias_worst10th = function(x) {
+  q10 = quantile(x, 0.10)
+  q90 = quantile(x, 0.90)
+  if ( abs(q10) >= abs(q90) ) return(q10)
+  if ( abs(q10) < abs(q90) ) return(q90)
+}
+#bias_worst10th(x = rnorm(100))
 
 
 
@@ -561,7 +502,8 @@ make_winner_table_col = function(.agg,
 make_winner_table = function( .agg,
                               .yNames = c("MhatBias", "MhatAbsBias", "MhatRMSE", "MhatCover", "MhatWidth", "MhatEstConverge"),
                               summarise.fun.name,
-                              display = "dataframe"){
+                              #display = "dataframe",
+                              display = "xtable"){
   
   for ( .yName in .yNames ){
     newCol = make_winner_table_col(.agg = .agg,

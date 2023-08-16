@@ -91,11 +91,7 @@ if (run.local == FALSE) {
   jobname = args[1]
   #scen = args[2]
   
-  # DEBUGGING ONLY
-  cat(args[2])
-  cat( mode(args[2]) )
-  
-  
+
   # alt: avoid stringr::str_split becuase it gives weird error on cluster
   scens.to.run = unlist(strsplit(paste0(args[2], ","), ",")) # this will be a string like "1,2,3,4"
   
@@ -116,11 +112,6 @@ if (run.local == FALSE) {
     # get scen parameters (made by genSbatch.R)
     setwd(path)
     scen.params = read.csv( "scen_params.csv" )
-    #bm: will this cause error about not finding p later?
-    # p <<- scen.params[ scen.params$scen == scen, ]
-    # 
-    # cat("\n\nHEAD OF ENTIRE SCEN.PARAMS:\n")
-    # print(p)
   }
   
   # ~~ Interactive Cluster Run ----------------------------------------
@@ -265,91 +256,6 @@ if ( run.local == TRUE ) {
   scen.params = scen.params %>% add_column( scen = start.at : ( nrow(scen.params) + (start.at - 1) ),
                                             .before = 1 )
   
-  
-  # scen.params = tidyr::expand_grid(
-  #   
-  #   # for local runs, note that beta-sm is quite slow
-  #   # rep.methods = "naive ; mbma-MhatB ; mbma-muB ; 2psm ; beta-sm ; mbma-MhatB-gamma",
-  #   rep.methods = "naive ; mbma-MhatB",
-  #   
-  #   
-  #   # args from sim_meta_2
-  #   Nmax = 1, 
-  #   true.dist = "expo",
-  #   Mu = c(0.25),
-  #   t2a = c(0.25), 
-  #   t2w = c(0),
-  #   m = 50,
-  #   
-  #   #bm: try running existing hacking methods? affirm or affirm2?
-  #   # remember that affirm will only work if prob.hacked < 1 else will never have nonaffirms
-  #   #hack = c("favor-lowest-p"),
-  #   #hack = "favor-gamma-ratio",
-  #   hack = "affirm2",
-  #   rho = c(0),
-  #   k.pub.nonaffirm = c(15, 30),
-  #   prob.hacked = c(0), 
-  #   
-  #   eta = c(3),
-  #   # within-study selection ratio; only used when hack=favor-gamma-ratio
-  #   # important: other hacking methods will IGNORE gamma because can't be directly specified
-  #   gamma = c(2), 
-  #   SAS.type = "2psm", # "2psm" (original) or "carter"
-  #   
-  #   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"), 
-  #   
-  #   # confounding parameters
-  #   muB = 0.25,
-  #   sig2B = 0.5,
-  #   prob.conf = c(0.5),
-  #   # muB = 0,
-  #   # sig2B = 0,
-  #   # prob.conf = 0,
-  #   
-  #   # Stan control args - only relevant if running RTMA
-  #   stan.maxtreedepth = 25,
-  #   stan.adapt_delta = 0.995,
-  #   
-  #   get.CIs = TRUE,
-  #   run.optimx = FALSE )
-  
-  
-  # more scens
-  # scen.params = tidyr::expand_grid(
-  #   
-  #   rep.methods = "naive ; mbma-MhatB ; mbma-MhatB-true-t2 ; maon-adj-MhatB ; 2psm",
-  #   
-  #   
-  #   # args from sim_meta_2
-  #   Nmax = 1,
-  #   Mu = c(0.5),
-  #   t2a = c(0, 0.25^2, 0.5^2), 
-  #   t2w = c(0),
-  #   m = 50,
-  #   
-  #   hack = c("affirm"),  # but there will not be any hacking since prob.hacked is 0
-  #   rho = c(0),
-  #   k.pub.nonaffirm = c(5, 10, 15, 30, 50),
-  #   prob.hacked = c(0),
-  #   
-  #   eta = c(1, 5, 10),
-  #   
-  #   true.sei.expr = c("0.02 + rexp(n = 1, rate = 3)"),
-  #   
-  #   # confounding parameters
-  #   muB = log(1.5, 3),
-  #   sig2B = 0.5,
-  #   prob.conf = c(0.5), 
-  #   
-  #   # Stan control args - only relevant if running RTMA
-  #   stan.maxtreedepth = 25,
-  #   stan.adapt_delta = 0.995,
-  #   
-  #   get.CIs = TRUE,
-  #   run.optimx = FALSE )
-  
-  
-  
   scen.params$scen = 1:nrow(scen.params)
   
   
@@ -357,13 +263,9 @@ if ( run.local == TRUE ) {
   
   # set the number of local cores
   registerDoParallel(cores=8)
-  
-  #scens.to.run = c(1,2)
-  #scens.to.run = 1:8
-  #scens.to.run = c(7141, 7142, 7143, 7144, 7145, 7146, 7147, 7148, 7149, 7150) # evil ones from job that failed
+
   scens.to.run=7144
-  # data.frame(scen.params %>% filter(scen.name == scen))
-  
+
   # make sure we made enough scens to actually run them
   expect_equal( length(scens.to.run) <= length(scen.params$scen), TRUE )
   
@@ -371,18 +273,6 @@ if ( run.local == TRUE ) {
   jobname = "job_1"
   i = 1
 }
-
-
-
-# COMPILE STAN MODEL ONCE AT BEGINNING------------------------------
-
-# only needed if running RTMA
-# if ( run.local == TRUE ) setwd(code.dir)
-# 
-# if ( run.local == FALSE ) setwd(path)
-# 
-# source("init_stan_model_MBMA.R")
-
 
 
 
@@ -456,25 +346,7 @@ doParallel.seconds = system.time({
                       prob.conf = p$prob.conf,
                       
                       return.only.published = FALSE)
-      
-      #mean(d$Ci)
-      
-      
-      # sanity
-      #View(d %>% select(yi, vi, pval, affirm, Di.across.prob))
-      
-      # # TEMP    
-      # d %>% group_by(affirm) %>%
-      #   summarise( mean(Fi), mean(Di.across))
-      # 
-      # 
-      # # using base-R filtering because filter() not working here
-      # d[ d$Fi == 1 & d$Di.across == 1, ] %>%
-      #   group_by(Ci, affirm) %>%
-      #   summarise(n(),
-      #             mean(Bi),
-      #             mean(mui),
-      #             mean(yi))
+    
       
       d$Zi = d$yi / sqrt(d$vi)
       
@@ -490,12 +362,6 @@ doParallel.seconds = system.time({
         d$tcrit.adj.true = d$tcrit
         d$tcrit.adj.true[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] * sqrt(d$vi[ d$Ci == 1 ]) - p$muB ) / sqrt(d$vi.adj.true[ d$Ci == 1 ])
         
-        # d %>% group_by(Ci) %>%
-        #   summarise( mean(yi),
-        #              mean(yi.adj.true),
-        #              mean(vi.adj.true),
-        #              mean(tcrit),
-        #              mean(tcrit.adj.true))
         
         expect_equal( d$affirm,
                       d$yi > d$tcrit * sqrt(d$vi) )
@@ -553,16 +419,7 @@ doParallel.seconds = system.time({
         ( MhatB = (1/denom) * ( P.nonaffirm.pub * p$eta * MhatB.nonaffirm.obs +
                                   P.affirm.pub * MhatB.affirm.obs ) )
         
-        
-        # # save: unweighted sample estimate one (just for comparison)
-        # # will be way too high
-        # mean( dp$Bi[ dp$Ci == 1 ] )
-        # 
-        # # underlying sample estimate of truth
-        # mean( d$Bi[ d$Ci == 1 & d$Di == 1] )
-        # 
-        # # also should be close to...
-        # p$muB
+    
         
         # ~ Sample estimate of sig2B (only used for RTMA, not MBMA) -------------------
         
@@ -598,21 +455,7 @@ doParallel.seconds = system.time({
         termC = 2 * ( Pstar.affirm * Pstar.nonaffirm ) * ( MhatB.affirm.obs * MhatB.nonaffirm.obs )
         
         ( shat2B = termA + termB - termC )
-        
-        # # sanity checks
-        # # close match
-        # Pstar.affirm
-        # mean(d$affirm[d$Ci==1])
-        # 
-        # # sample should be close to underlying because no selection on Bi^*
-        # #  though requires quite large k to work
-        # shat2B.nonaffirm.obs
-        # var(d$Bi[d$Ci == 1 & d$affirm == 0])
-        # 
-        # # also matches pretty closely
-        # shat2B
-        # var(d$Bi[d$Ci==1])
-        # p$sig2B
+  
         
         
         # ~ ******* Adjusted yi, vi, tcrit in the dataset -------------------
@@ -627,59 +470,7 @@ doParallel.seconds = system.time({
         d$tcrit.adj.est[ d$Ci == 1 ] = ( d$tcrit[ d$Ci == 1 ] *
                                            sqrt(d$vi[ d$Ci == 1 ]) - MhatB ) / sqrt(d$vi.adj.est[ d$Ci == 1 ])
         
-        
-        # ~ Sanity checks on RTMA reparametrization -------------------
-        
-        # look for problems calculating the adjusted estimates
-        # if ( any(is.na(d$yi.adj.est)) | any(is.na(d$vi.adj.est)) ) {
-        # 
-        #   cat("\n\n TEMP FLAG yi.adj.est:\n")
-        #   print(head(d$yi.adj.est))
-        # 
-        #   cat("\n\n vi.adj.est:\n")
-        #   print(head(d$vi.adj.est))
-        # 
-        #   cat("\n\n mean(dp$Ci):\n")
-        #   print( mean(dp$Ci) )
-        # 
-        #   cat("\n\n mean(dp$affirm):\n")
-        #   print( mean(dp$affirm) )
-        # 
-        #   cat("\n\n shat2B:\n")
-        #   print( shat2B )
-        # 
-        #   cat("\n\n shat2B.nonaffirm.obs:\n")
-        #   print( shat2B.nonaffirm.obs )
-        # 
-        #   cat("\n\n shat2B.affirm.obs:\n")
-        #   print( shat2B.affirm.obs )
-        # }
-        # 
-        # if ( length(d$yi.adj.est) == 0 | length(d$vi.adj.est) == 0 ) {
-        # 
-        #   cat("\n\n TEMP FLAG yi.adj.est:\n")
-        #   print(head(d$yi.adj.est))
-        # 
-        #   cat("\n\n vi.adj.est:\n")
-        #   print(head(d$vi.adj.est))
-        # 
-        #   cat("\n\n mean(dp$Ci):\n")
-        #   print( mean(dp$Ci) )
-        # 
-        #   cat("\n\n mean(dp$affirm):\n")
-        #   print( mean(dp$affirm) )
-        # 
-        #   cat("\n\n shat2B:\n")
-        #   print( shat2B )
-        # 
-        #   cat("\n\n shat2B.nonaffirm.obs:\n")
-        #   print( shat2B.nonaffirm.obs )
-        # 
-        #   cat("\n\n shat2B.affirm.obs:\n")
-        #   print( shat2B.affirm.obs )
-        # }
-        
-        
+
         expect_equal( d$affirm,
                       d$yi > d$tcrit * sqrt(d$vi) )
         # confirm that adjusted affirmative threshold is equivalent to the old one
@@ -800,11 +591,7 @@ doParallel.seconds = system.time({
       
       
       rep.res
-      
-      
-      # then implement the other easy DGP things and make sure they all run locally
-      # you got this! oh yeah! :)
-      
+
       
       # ~~ 2PSM (All Published Draws)
       
@@ -1246,104 +1033,7 @@ doParallel.seconds = system.time({
                                           sancheck.shat2B = shat2B )
       
       
-      # MORE SANITY CHECKS THAT MAY FAIL IF, E.G., CIi=0 ALWAYS:
-      # # add info about simulated datasets
-      # # "ustudies"/"udraws" refers to underlying studies/draws prior to hacking or publication bias
-      # sancheck.prob.published.is.confounded = mean( dp$Ci == 1 )
-      # sancheck.prob.published.affirm.is.confounded = mean( dp$Ci[ dp$affirm == 1 ] == 1 )
-      # sancheck.prob.published.nonaffirm.is.confounded = mean( dp$Ci[ dp$affirm == 0 ] == 0 )
-      # 
-      # 
-      # ( sancheck.prob.ustudies.published =  mean( d.first$study %in% unique(dp$study) ) )
-      # expect_equal( sancheck.prob.ustudies.published, nrow(dp)/nrow(d.first) )
-      # # this one should always be 100% unless there's also publication bias:
-      # ( sancheck.prob.unhacked.ustudies.published =  mean( d.first$study[ d.first$hack == "no" ] %in% unique( dp$study[ dp$hack == "no" ] ) ) )
-      # # under affirm hacking, will be <100%:
-      # ( sancheck.prob.hacked.ustudies.published =  mean( d.first$study[ d.first$hack != "no" ] %in% unique( dp$study[ dp$hack != "no" ] ) ) )
-      # 
-      # # might NOT be 100% if you're generating multiple draws per unhacked studies but favoring, e.g., a random one:
-      # ( sancheck.prob.unhacked.udraws.published =  mean( d$study.draw[ d$hack == "no" ] %in% unique( dp$study.draw[ dp$hack == "no" ] ) ) )
-      # ( sancheck.prob.hacked.udraws.published =  mean( d$study.draw[ d$hack != "no" ] %in% unique( dp$study.draw[ dp$hack != "no" ] ) ) )
-      # 
-      # 
-      # 
-      # #*this one is especially important: under worst-case hacking, it's analogous to prop.retained in
-      # #  TNE since it's the proportion of the underlying distribution that's nonaffirmative
-      # ( sancheck.prob.unhacked.udraws.nonaffirm =  mean( d$affirm[ d$hack == "no" ] == FALSE ) )
-      # # a benchmark for average power:
-      # ( sancheck.prob.unhacked.udraws.affirm =  mean( d$affirm[ d$hack == "no" ] ) )
-      # ( sancheck.prob.hacked.udraws.nonaffirm =  mean( d$affirm[ d$hack != "no" ] == FALSE ) )
-      # ( sancheck.prob.hacked.udraws.affirm =  mean( d$affirm[ d$hack != "no" ] ) )
-      # 
-      # # probability that a published, nonaffirmative draw is from a hacked study
-      # # under worst-case hacking, should be 0
-      # ( sancheck.prob.published.nonaffirm.is.hacked = mean( dp$hack[ dp$affirm == 0 ] != "no" ) )
-      # # this will be >0
-      # ( sancheck.prob.published.affirm.is.hacked = mean( dp$hack[ dp$affirm == 1 ] != "no" ) )
-      # 
-      # rep.res = rep.res %>% add_column(   sancheck.dp.k = nrow(dp),
-      #                                     sancheck.dp.k.affirm = sum(dp$affirm == TRUE),
-      #                                     sancheck.dp.k.nonaffirm = sum(dp$affirm == FALSE),
-      # 
-      #                                     sancheck.prob.published.is.confounded = sancheck.prob.published.is.confounded,
-      #                                     sancheck.prob.published.affirm.is.confounded = sancheck.prob.published.affirm.is.confounded,
-      #                                     sancheck.prob.published.nonaffirm.is.confounded = sancheck.prob.published.nonaffirm.is.confounded,
-      # 
-      #                                     sancheck.dp.k.affirm.unhacked = sum(dp$affirm == TRUE & dp$hack == "no"),
-      #                                     sancheck.dp.k.affirm.hacked = sum(dp$affirm == TRUE & dp$hack != "no"),
-      #                                     sancheck.dp.k.nonaffirm.unhacked = sum(dp$affirm == FALSE & dp$hack == "no"),
-      #                                     sancheck.dp.k.nonaffirm.hacked = sum(dp$affirm == FALSE & dp$hack != "no"),
-      # 
-      #                                     # means draws per HACKED, published study
-      #                                     sancheck.dp.meanN.hacked = mean( dp$N[dp$hack != "no"] ),
-      #                                     sancheck.dp.q90N.hacked = quantile( dp$N[dp$hack != "no"], 0.90 ),
-      # 
-      #                                     # average yi's of published draws from each study type
-      #                                     sancheck.mean.yi.unhacked.pub.study = mean( dp$yi[ dp$hack == "no"] ),
-      #                                     sancheck.mean.yi.hacked.pub.study = mean( dp$yi[ dp$hack != "no"] ),
-      # 
-      # 
-      #                                     sancheck.mean.mui.unhacked.pub.nonaffirm = mean( dp$mui[ dp$hack == "no" & dp$affirm == FALSE ] ),
-      #                                     sancheck.mean.yi.unhacked.pub.nonaffirm = mean( dp$yi[ dp$hack == "no" & dp$affirm == FALSE ] ),
-      #                                     sancheck.mean.yi.unhacked.pub.affirm = mean( dp$yi[ dp$hack == "no" & dp$affirm == TRUE ] ),
-      # 
-      #                                     sancheck.mean.yi.hacked.pub.nonaffirm = mean( dp$yi[ dp$hack != "no" & dp$affirm == FALSE ] ),
-      #                                     sancheck.mean.yi.hacked.pub.affirm = mean( dp$yi[ dp$hack != "no" & dp$affirm == TRUE ] ),
-      # 
-      #                                     # average Zi's
-      #                                     sancheck.mean.Zi.unhacked.pub.study = mean( dp$Zi[ dp$hack == "no"] ),
-      #                                     sancheck.mean.Zi.hacked.pub.study = mean( dp$Zi[ dp$hack != "no"] ),
-      # 
-      #                                     sancheck.mean.Zi.unhacked.pub.nonaffirm = mean( dp$Zi[ dp$hack == "no" & dp$affirm == FALSE ] ),
-      #                                     sancheck.mean.Zi.unhacked.pub.affirm = mean( dp$Zi[ dp$hack == "no" & dp$affirm == TRUE ] ),
-      # 
-      #                                     sancheck.mean.Zi.hacked.pub.nonaffirm = mean( dp$Zi[ dp$hack != "no" & dp$affirm == FALSE ] ),
-      #                                     sancheck.mean.Zi.hacked.pub.affirm = mean( dp$Zi[ dp$hack != "no" & dp$affirm == TRUE ] ),
-      # 
-      # 
-      #                                     sancheck.prob.ustudies.published = sancheck.prob.ustudies.published,
-      #                                     sancheck.prob.unhacked.ustudies.published = sancheck.prob.unhacked.ustudies.published,
-      #                                     sancheck.prob.hacked.ustudies.published = sancheck.prob.hacked.ustudies.published,
-      # 
-      #                                     sancheck.prob.unhacked.udraws.published = sancheck.prob.unhacked.udraws.published,
-      #                                     sancheck.prob.hacked.udraws.published = sancheck.prob.hacked.udraws.published,
-      # 
-      #                                     sancheck.prob.unhacked.udraws.nonaffirm = sancheck.prob.unhacked.udraws.nonaffirm,
-      #                                     sancheck.prob.unhacked.udraws.affirm = sancheck.prob.unhacked.udraws.affirm,
-      #                                     sancheck.prob.hacked.udraws.nonaffirm = sancheck.prob.hacked.udraws.nonaffirm,
-      #                                     sancheck.prob.hacked.udraws.affirm = sancheck.prob.hacked.udraws.affirm,
-      # 
-      #                                     sancheck.prob.published.nonaffirm.is.hacked = sancheck.prob.published.nonaffirm.is.hacked,
-      # 
-      #                                     # sanity checks for MhatB
-      #                                     # E[Bi^* | Ci^* = 1], the target for MhatB:
-      #                                     sancheck.MhatB = MhatB,
-      #                                     #@note: Di = 1 here is FAVORING indicator, so this is still the mean Bi among underlying (pre-SAS) estimates
-      #                                     # this is an underlying SAMPLE estimate of the truth; should approximately agree with MhatB and muB
-      #                                     sancheck.EBsti = mean( d$Bi[ d$Ci == 1 & d$Di == 1] ),
-      # 
-      #                                     sancheck.shat2B = shat2B )
-      
+     
       rep.res
       
     }  ### end foreach loop for ONE scen in scens.to.run
@@ -1376,28 +1066,6 @@ doParallel.seconds = system.time({
 
 
 cat( paste("\n\ndoParallel flag. Done entire for-loop." ) )
-
-# temp debugging
-# dim(rs)
-# # quick look
-# rs %>% mutate(MhatWidth = MHi - MLo,
-#               MhatCover = as.numeric( MHi > Mu & MLo < Mu ) ) %>%
-#   dplyr::select(method, Mhat, MhatWidth, MhatCover,EtaGammaHat,EtaGammaAssumed,
-#                 sancheck.MhatB, sancheck.EBsti) %>%
-# 
-#   group_by(method) %>%
-#   summarise_if(is.numeric, function(x) round( meanNA(x), 2 ) )
-# 
-# any(is.na(rs$sancheck.MhatB))
-
-
-
-# temp debugging
-cat( paste("\n\ndoParallel flag. str(rs):", str(rs) ) )
-
-cat( paste("\ndoParallel flag. head(rs):" ) ); print(head(rs))
-
-cat( paste("\n\ndoParallel flag. dim(rs):", dim(rs) ) )
 
 
 
@@ -1463,13 +1131,7 @@ if ( run.local == TRUE ) {
   
   agg
   
-  
-  # # scenario diagnostics for scenario
-  # keepers = namesWith("sancheck.", rs)
-  # agg.checks = rs %>% summarise_at( keepers,
-  #                                   function(x) round( mean(x), 2) )
-  #t(agg.checks)
-  
+
 }
 
 
